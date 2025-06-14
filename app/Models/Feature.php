@@ -18,4 +18,8 @@ class Feature extends Model
         'title',
         'description',
     ];
+
+    public function rooms(){
+        return $this->belongsToMany(Room::class);
+    }
 }

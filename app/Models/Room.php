@@ -19,4 +19,8 @@ class Room extends Model
         'floor',
         'capacity',
     ];
+
+    public function features(){
+        return $this->belongsToMany(Feature::class);
+    }
 }

@@ -41,4 +41,8 @@ class Meeting extends Model
         return $this->hasOne(MinutesOfMeeting::class);
     }
 
+    public function attendees(){
+        return $this->belongsToMany(User::class);
+    }
+
 }
