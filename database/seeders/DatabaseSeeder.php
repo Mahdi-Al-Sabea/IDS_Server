@@ -20,5 +20,10 @@ class DatabaseSeeder extends Seeder
         $this->call(UserSeeder::class);
         $this->call(FeatureSeeder::class);
         $this->call(RoomSeeder::class);
+        $this->call(MeetingSeeder::class);
+        $this->call(MinutesOfMeetingSeeder::class);
+        $this->call(AttachmentSeeder::class);
+        $this->call(ActionItemSeeder::class);
+
     }
 }
