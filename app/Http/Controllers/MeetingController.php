@@ -9,9 +9,23 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Agenda;
 use App\Models\User;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\InvitationNotificationMail;
+use App\Mail\BookingConfirmationNotificationMail;
+use App\Models\Notification;
+use App\Http\Controllers\NotificationController;
+use App\Mail\MeetingUpdateNotificationMail;
 
 class MeetingController extends Controller
 {
+
+
+    protected $notificationController;
+
+    public function __construct(NotificationController $notificationController) {
+        $this->notificationController = $notificationController;
+    }
+
     use ApiResponse;
     /**
      * Display a listing of the resource.
@@ -52,7 +66,6 @@ class MeetingController extends Controller
         'description' => 'nullable|string',
         'startsAt' => 'required|date',
         'endsAt' => 'required|date|after_or_equal:startsAt',
-        'status' => 'required|in:booked,rescheduled,cancelled',
         'attendees' => 'sometimes|array',
         'attendees.*' => 'exists:users,id',
         'agendas' => 'required|array|min:1',
@@ -87,7 +100,7 @@ class MeetingController extends Controller
         'description' => $request->description,
         'startsAt' => $request->startsAt,
         'endsAt' => $request->endsAt,
-        'status' => $request->status,
+        'status' => 'booked',
     ]);
 
     // Attach attendees
@@ -95,6 +108,25 @@ class MeetingController extends Controller
 
     // Create agendas
     $meeting->agendas()->createMany($request->agendas);
+
+    
+
+    Mail::to(Auth::user()->email)->send(new BookingConfirmationNotificationMail($meeting, Auth::user()));
+    $this->notificationController->store(
+        'Meeting Confirmation',
+        'Your meeting for room ' . $meeting->room->roomname . ' has been successfully booked.',
+        Auth::user()->id
+    );
+
+    foreach ($meeting->attendees as $attendee) {
+        // Send notification to each attendee
+        Mail::to($attendee->email)->send(new InvitationNotificationMail($meeting, $attendee));
+        $this->notificationController->store(
+            'Meeting Invitation',
+            'You have been invited to a meeting in room ' . $meeting->room->roomname . '.',
+            $attendee->id
+        );
+    }
 
     return $this->sendResponse('Meeting created successfully.', $meeting->load(['attendees', 'agendas']), 201);
 }
@@ -111,9 +143,7 @@ class MeetingController extends Controller
         
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
+
     public function update(Request $request, string $id)
     {
         $meeting = Meeting::find($id);
@@ -127,7 +157,7 @@ class MeetingController extends Controller
         'description' => 'nullable|string',
         'startsAt' => 'required|date',
         'endsAt' => 'required|date|after_or_equal:startsAt',
-        'status' => 'required|in:booked,rescheduled,cancelled',
+        'status' => 'sometimes|in:cancelled',
         'attendees' => 'sometimes|array',
         'attendees.*' => 'exists:users,id',
         'agendas' => 'required|array|min:1',
@@ -143,26 +173,54 @@ class MeetingController extends Controller
             return $this->sendError('Unauthorized', ['message' => 'You must be the organizer to update this meeting.'], 401);
         }
 
-         if ($request->has('status') && $request->status === 'cancelled') { 
+        if ($request->has('status') && $request->status === 'cancelled') { 
             // If the meeting is being cancelled, we can skip the conflict check
             $meeting->status = 'cancelled';
             $meeting->endsAt = now(); // Set the end time to now or any other logic you prefer
             $meeting->startsAt = now(); // Set the start time to now or any other logic you prefer
             $meeting->save();
+
+
+            foreach ($meeting->attendees as $attendee) {
+                // Send notification to each attendee
+                Mail::to($attendee->email)->send(new MeetingUpdateNotificationMail($meeting, $attendee));
+                $this->notificationController->store(
+                    'Meeting Cancellation',
+                    'A meeting you had in room ' . $meeting->room->roomname . ' has been cancelled.',
+                    $attendee->id
+                );
+            }
+
             return $this->sendResponse('Meeting cancelled successfully.', $meeting);
-         }         
+        }         
 
             // ✅ Check for overlapping meetings
-    $conflict = Meeting::where('room_id', $request->room_id)
-        ->where(function ($query) use ($request) {
+        $conflict = Meeting::where('room_id', $request->room_id)
+        ->where(function ($query) use ($request, $id) {
             $query->where('startsAt', '<', $request->endsAt)
-                  ->where('endsAt', '>', $request->startsAt);
+                ->where('endsAt', '>', $request->startsAt)
+                ->where('id', '!=', $id); // Exclude the current meeting
         })
         ->exists();
 
-    if ($conflict) {
-        return $this->sendError('Meeting conflict', ['This room is already booked during that time.'], 409);
-    }
+        if ($conflict) {
+            return $this->sendError('Meeting conflict', ['This room is already booked during that time.'], 409);
+        }
+
+        if($request->startsAt !=$meeting->startsAt || $request->endsAt != $meeting->endsAt) {
+            $request->merge(['status' => 'rescheduled']);
+            // If the start or end time has changed, we need to notify attendees
+            foreach ($meeting->attendees as $attendee) {
+                 // Set status to updated for notification
+                // Send notification to each attendee
+                Mail::to($attendee->email)->send(new MeetingUpdateNotificationMail($meeting, $attendee));
+                $this->notificationController->store(
+                    'Meeting Update',
+                    'A meeting you had in room ' . $meeting->room->roomname . ' has been rescheduled.',
+                    $attendee->id
+                );
+            }
+        }
 
         // Update the meeting
         $meeting->update($request->only(['room_id', 'title', 'description', 'startsAt', 'endsAt', 'status']));

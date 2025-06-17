@@ -7,6 +7,8 @@ use App\Http\Controllers\FeatureController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MeetingController;
+use App\Http\Controllers\NotificationController;
+
 
 
 
@@ -15,6 +17,14 @@ use App\Http\Controllers\MeetingController;
 /* Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum'); */
+
+
+    Route::get("Notification", [NotificationController::class, "index"]);
+    /* Route::post("Notification/{subject}/{content}/{user_id}", [NotificationController::class, "store"]); */
+    Route::get("Notification/{id}", [NotificationController::class, "show"]);
+    Route::delete("Notification/{id}", [NotificationController::class, "destroy"]);
+    Route::get("Notification/User/{userId}", [NotificationController::class, "showByUserId"]);
+
 
 
 
