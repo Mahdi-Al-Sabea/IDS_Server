@@ -16,11 +16,17 @@ use App\Http\Controllers\NotificationController;
 
 
 
-Route::middleware(['auth:sanctum','checkadmin'])->group(function () {});
+/* Route::middleware(['auth:sanctum','checkadmin'])->group(function () {});
 
 
-Route::middleware(['auth:sanctum','checkemployee'])->group(function () {});
+Route::middleware(['auth:sanctum','checkemployee'])->group(function () {}); */
 
+
+Route::middleware(['auth:sanctum','checkrole:Admin'])->group(function () {});
+
+Route::middleware(['auth:sanctum','checkrole:Employee'])->group(function () {});
+
+Route::middleware(['auth:sanctum','checkrole:Guest'])->group(function () {});
 
 Route::middleware(['auth:sanctum','checkrole:Employee,Admin'])->group(function () {});
 

@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 'checkadmin'=> \App\Http\Middleware\CheckAdmin::class,
                 'checkemployee'=> \App\Http\Middleware\CheckEmployee::class,
                 'checkrole'=> \App\Http\Middleware\CheckRole::class,
+                'checktokenexpiry'=> \App\Http\Middleware\CheckTokenExpiry::class,
             ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
