@@ -28,6 +28,7 @@ class AuthController extends Controller
             $token =  $user->createToken('MyApp')->plainTextToken;
             $success['token']= $token;
             $success['name'] =  $user->name;
+            $success['role'] =  $user->role;
             return $this->sendResponse("Connected",$success);
         }
         else{
