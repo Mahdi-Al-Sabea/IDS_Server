@@ -20,6 +20,8 @@ class Meeting extends Model
         'status',
         'startsAt',
         'endsAt',
+        'room_id',
+         'organizer_id', 
     ];
 
     /**
@@ -42,7 +44,16 @@ class Meeting extends Model
     }
 
     public function attendees(){
-        return $this->belongsToMany(User::class);
+        return $this->belongsToMany(User::class, 'meeting_attendee', 'meeting_id', 'user_id');
+    }
+
+    public function room()
+    {
+        return $this->belongsTo(Room::class);
+    }
+    public function organizer()
+    {
+        return $this->belongsTo(User::class, 'organizer_id');
     }
 
 }

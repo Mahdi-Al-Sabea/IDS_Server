@@ -58,7 +58,8 @@ class User extends Authenticatable
     }
 
     public function meetings(){
-        return $this->belongsToMany(User::class);
+        return $this->belongsToMany(User::class, 'meeting_attendee', 'user_id', 'meeting_id');
+
     }
 
 

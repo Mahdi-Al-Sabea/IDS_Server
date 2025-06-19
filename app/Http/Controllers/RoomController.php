@@ -1,0 +1,121 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Room;
+use Illuminate\Support\Facades\Validator;
+use App\Models\Feature;
+use App\Traits\ApiResponse; // Assuming you have this trait for API responses
+
+class RoomController extends Controller
+{
+    use ApiResponse;
+    /**
+     * Display a listing of the resource.
+     */
+    public function index(Request $request)
+    {
+        $query = Room::with('features');
+
+        if ($request->has('floor')) {
+            $query->where('floor', $request->floor);
+        }
+        if ($request->has('minCapacity')) {
+            $query->where('capacity', '>=', $request->minCapacity);
+        }
+        if ($request->has('roomname')) {
+            $query->where('roomname', 'like', '%' . $request->roomname . '%');
+        }
+
+        $rooms = $query->get();
+        return $this->sendResponse('Room list retrieved successfully.', $rooms);
+    }
+
+    
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+         $validator = Validator::make($request->all(), [
+        'roomname' => 'required|string',
+        'floor' => 'required|integer',
+        'capacity' => 'required|integer|min:10|max:1000',
+        'features' => 'array', // Optional
+        'features.*' => 'exists:features,id',
+    ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors());
+        }
+
+    $room = Room::create($request->only(['roomname', 'floor', 'capacity']));
+
+    // Attach features if provided
+    if ($request->has('features')) {
+        $room->features()->attach($request->features);
+    }
+
+    return $this->sendResponse('Room created successfully', $room->load('features'), 201);
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        $room = Room::with('features')->find($id);
+        if (!$room) {
+            return $this->sendError('Room not found.', [], 404);
+        }
+        return $this->sendResponse('Room retrieved successfully.', $room);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, string $id)
+    {
+         $room = Room::findOrFail($id);
+
+    $validator = Validator::make($request->all(), [
+        'roomname' => 'sometimes|string',
+        'floor' => 'sometimes|integer',
+        'capacity' => 'sometimes|integer|min:10|max:1000',
+        'features' => 'array',
+        'features.*' => 'exists:features,id',
+    ]);
+
+    if ($validator->fails()) {
+        return $this->sendError('Validation Error', $validator->errors());
+    }
+
+    $room->update($request->only(['roomname', 'floor', 'capacity']));
+
+    if ($request->has('features')) {
+        // Sync replaces the existing features with new ones
+        $room->features()->sync($request->features);
+    }
+
+    return $this->sendResponse('Room updated successfully', $room->load('features'));
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(string $id)
+    {
+        $room = Room::find($id);
+        if (!$room) {
+            return $this->sendError('Room not found.', [], 404);
+        }
+
+        // Detach features before deleting the room
+        $room->features()->detach();
+        
+        $room->delete();
+        return $this->sendResponse('Room deleted successfully.', null, 204);
+    }
+}
