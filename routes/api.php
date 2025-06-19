@@ -16,26 +16,29 @@ use App\Http\Controllers\NotificationController;
 
 
 
-
-/* Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum'); */
+/* Route::middleware(['auth:sanctum','checkadmin'])->group(function () {});
 
 
-    Route::get("Notification", [NotificationController::class, "index"]);
-    /* Route::post("Notification/{subject}/{content}/{user_id}", [NotificationController::class, "store"]); */
-    Route::get("Notification/{id}", [NotificationController::class, "show"]);
-    Route::delete("Notification/{id}", [NotificationController::class, "destroy"]);
-    Route::get("Notification/User/{userId}", [NotificationController::class, "showByUserId"]);
+Route::middleware(['auth:sanctum','checkemployee'])->group(function () {}); */
 
 
+Route::middleware(['auth:sanctum','checkrole:Admin'])->group(function () {});
+
+Route::middleware(['auth:sanctum','checkrole:Employee'])->group(function () {});
+
+Route::middleware(['auth:sanctum','checkrole:Guest'])->group(function () {});
+
+Route::middleware(['auth:sanctum','checkrole:Employee,Admin'])->group(function () {});
 
 
-Route::middleware(['auth:sanctum','checkadmin'])->group(function () {
+Route::middleware(['auth:sanctum'])->group(function () {
 
+    Route::get("Room", [RoomController::class, "index"]);
+    Route::get("Room/{id}", [RoomController::class, "show"]);
     Route::post("Room", [RoomController::class, "store"]);
     Route::put("Room/{id}", [RoomController::class, "update"]);
     Route::delete("Room/{id}", [RoomController::class, "destroy"]);
+
 
     Route::post("Feature", [FeatureController::class, "store"]);
     Route::get("Feature", [FeatureController::class, "index"]);
@@ -43,12 +46,7 @@ Route::middleware(['auth:sanctum','checkadmin'])->group(function () {
     Route::put("Feature/{id}", [FeatureController::class, "update"]);
     Route::delete("Feature/{id}", [FeatureController::class, "destroy"]);
 
-});
 
-
-
-
-Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::post("Meeting", [MeetingController::class, "store"]);
     Route::get("Meeting", [MeetingController::class, "index"]);
@@ -63,8 +61,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete("User/{id}", [UserController::class, "destroy"]);
 
     
-    Route::get("Room", [RoomController::class, "index"]);
-    Route::get("Room/{id}", [RoomController::class, "show"]);
+    Route::get("Notification", [NotificationController::class, "index"]);
+    Route::get("Notification/{id}", [NotificationController::class, "show"]);
+    Route::delete("Notification/{id}", [NotificationController::class, "destroy"]);
+    Route::get("Notification/User/{userId}", [NotificationController::class, "showByUserId"]);
 
 
     Route::get("Minutes", [MinutesOfMeetingController::class, "index"]);
@@ -86,6 +86,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('ActionItem/{id}', [ActionItemController::class, 'show']);
     Route::put('ActionItem/{id}', [ActionItemController::class, 'update']);
     Route::delete('ActionItem/{id}', [ActionItemController::class, 'destroy']);
+
 });
 
 
