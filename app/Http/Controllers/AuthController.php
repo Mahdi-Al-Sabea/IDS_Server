@@ -33,8 +33,7 @@ class AuthController extends Controller
             $latestToken->save();
 
             $success['token']= $token;
-            $success['name'] =  $user->name;
-            $success['role'] =  $user->role;
+            $success['user'] =  $user;
             return $this->sendResponse("Connected",$success);
         }
         else{
