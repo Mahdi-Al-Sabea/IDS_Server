@@ -13,11 +13,25 @@ class NotificationController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $notifications = Notification::all();
-        return $this->sendResponse('Notification list retrieved successfully.', $notifications);
-    }
+
+
+        $userId = $request->user()->id; // Get the authenticated user's ID
+        $userRole = $request->user()->role; // Get the authenticated user's role
+/*         if ($userRole == 'Admin') {
+            $notifications = Notification::all(); // Admin can see all notifications
+            return $this->sendResponse('All notifications retrieved successfully.', $notifications);
+        } */
+        $perPage = $request->input('per_page', 5); // Default to 5 notifications per page
+        $notifications = Notification::where('receiver_id', $userId)->paginate($perPage);
+
+        if ($notifications->isEmpty()) {
+            return $this->sendError('No notifications found for this user.', null, 404);
+        }
+        return $this->sendResponse('Notifications retrieved successfully.', $notifications);
+    } 
+
 
     /**
      * Store a newly created resource in storage.
@@ -87,12 +101,16 @@ class NotificationController extends Controller
     }
 
 
-    public function showByUserId($userId)
+/*     public function showByUserId(Request $request,$userId)
     {
-        $notifications = Notification::where('receiver_id', $userId)->get();
+        //$notifications = Notification::where('receiver_id', $userId)->get();
+        $perPage = $request->input('per_page', 5); // Default to 5 notifications per page
+        $notifications = Notification::where('receiver_id', $userId)->paginate($perPage);
+
         if ($notifications->isEmpty()) {
             return $this->sendError('No notifications found for this user.', null, 404);
         }
         return $this->sendResponse('Notifications retrieved successfully.', $notifications);
-    }
+    } */
+
 }
