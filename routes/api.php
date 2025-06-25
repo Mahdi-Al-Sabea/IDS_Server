@@ -54,6 +54,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put("Meeting/{id}", [MeetingController::class, "update"]);
     Route::delete("Meeting/{id}", [MeetingController::class, "destroy"]);
 
+    Route::get("User/Profile", [UserController::class, "getUserProfile"]);
     Route::post("User", [UserController::class, "store"]);
     Route::get("User", [UserController::class, "index"]);
     Route::get("User/{id}", [UserController::class, "show"]);
