@@ -49,7 +49,7 @@ class UserController extends Controller
         ]);
         if($validator->fails()){
             $errors = $validator->errors();
-            return $this->sendError("Failure",$errors);
+            return $this->sendError("Validation Error",$errors);
         }
 
 
@@ -60,6 +60,8 @@ class UserController extends Controller
             $newname = time() . '-' . $file->getClientOriginalName();
             $file->storeAs('ProfileImages', $newname, 'public');
             $data['profile_picture'] = 'storage/ProfileImages/' . $newname;
+        }else{
+            $data['profile_picture'] = 'storage/ProfileImages/default.png';
         }
 
         $data['password'] = Hash::make($data['password']);
@@ -81,6 +83,13 @@ class UserController extends Controller
 
     public function update(Request $request, string $id)
     {
+        $userId = $request->user()->id; // Get the authenticated user's ID
+        $userRole = $request->user()->role; // Get the authenticated user's role
+
+        if ($userRole !== 'Admin' && $userId != $id) {
+            return $this->sendError('Unauthorized action.', [], 403);
+        }
+
         $user = User::find($id);
         if (!$user) {
             return $this->sendError('User not found.', [], 404);
@@ -108,7 +117,14 @@ class UserController extends Controller
             $data['profile_picture'] = 'storage/ProfileImages/' . $newname;
         }
 
-        $data['password'] = bcrypt($data['password']);
+        if ($request->filled('password')) {
+            // Only hash the password if it is provided
+            $data['password'] = bcrypt($data['password']);
+        } else {
+            // If password is not provided, keep the existing password
+            unset($data['password']);
+        }
+        
 
         $user->update($data);
         return $this->sendResponse('User updated successfully.', $user);
@@ -125,4 +141,15 @@ class UserController extends Controller
         $user->delete();
         return $this->sendResponse('User deleted successfully.', null, 204);
     }
+
+
+    public function getUserProfile(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return $this->sendError('User not authenticated.', [], 401);
+        }
+        return $this->sendResponse('User profile retrieved successfully.', $user);
+    }
+    
 }
