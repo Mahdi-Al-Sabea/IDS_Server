@@ -6,7 +6,9 @@ use Illuminate\Http\Request;
 use App\Models\Room;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Feature;
+use App\Models\Meeting;
 use App\Traits\ApiResponse; // Assuming you have this trait for API responses
+use Carbon\Carbon;
 
 class RoomController extends Controller
 {
@@ -118,4 +120,44 @@ class RoomController extends Controller
         $room->delete();
         return $this->sendResponse('Room deleted successfully.', null, 204);
     }
+
+
+
+    public function getAvailableRoomsForNextHour()
+    {
+        $nowLebanon = Carbon::now('Asia/Beirut');
+        
+        $oneHourLaterUtc = $nowLebanon->copy()->addHour();
+        $now = Carbon::now();
+        $oneHourLater = $now->copy()->addHour();
+
+        $occupiedRoomIds = Meeting::where(function ($query) use ($now, $oneHourLater) {
+            $query->whereBetween('startsAt', [$now, $oneHourLater])
+                ->orWhereBetween('endsAt', [$now, $oneHourLater])
+                ->orWhere(function ($q) use ($now, $oneHourLater) {
+                    $q->where('startsAt', '<=', $now)
+                        ->where('endsAt', '>=', $oneHourLater);
+                });
+        })->pluck('room_id')->unique();
+
+        $availableRooms = Room::whereNotIn('id', $occupiedRoomIds)->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Available rooms retrieved successfully.',
+            'nowLebanon' => $nowLebanon->toDateTimeString(),
+            'oneHourLaterUtc' => $oneHourLaterUtc->toDateTimeString(),
+            'occupiedRoomIds' => $occupiedRoomIds,
+            'available_rooms_count' => $availableRooms->count(),
+            'available_rooms' => $availableRooms,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Available rooms retrieved successfully.',
+            'available_rooms_count' => $availableRooms->count(),
+            'available_rooms' => $availableRooms,
+        ]);
+    }
+
 }

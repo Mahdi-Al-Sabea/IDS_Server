@@ -64,6 +64,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     
     Route::get("Room", [RoomController::class, "index"]);
+    Route::get("Room/getAvailableRoomsForNextHour", [RoomController::class, "getAvailableRoomsForNextHour"]);
     Route::get("Room/{id}", [RoomController::class, "show"]);
 
 
