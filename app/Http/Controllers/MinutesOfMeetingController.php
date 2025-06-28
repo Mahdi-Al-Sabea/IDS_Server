@@ -39,9 +39,9 @@ class MinutesOfMeetingController extends Controller
 
         $meeting = Meeting::find($request->meeting_id);
 
-        if (Auth::id() !== $meeting->organizer_id) {
+        /*if (Auth::id() !== $meeting->organizer_id) {
             return $this->sendError('Unauthorized', ['message' => 'Only the meeting organizer can create minutes.'], 401);
-        }
+        }*/
 
         $minutes = MinutesOfMeeting::create($request->only(['meeting_id', 'decisions', 'discussedPoints']));
 
@@ -75,9 +75,9 @@ class MinutesOfMeetingController extends Controller
 
         $meeting = Meeting::find($minutes->meeting_id);
 
-        if (Auth::id() !== $meeting->organizer_id) {
+        /*if (Auth::id() !== $meeting->organizer_id) {
             return $this->sendError('Unauthorized', ['message' => 'Only the meeting organizer can update minutes.'], 401);
-        }
+        }*/
 
         $validator = Validator::make($request->all(), [
             'decisions' => 'nullable|string',

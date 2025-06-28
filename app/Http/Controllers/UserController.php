@@ -5,7 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User; 
 use Illuminate\Support\Facades\Validator; 
-use \App\Traits\ApiResponse; 
+use \App\Traits\ApiResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 
@@ -151,5 +152,19 @@ class UserController extends Controller
         }
         return $this->sendResponse('User profile retrieved successfully.', $user);
     }
+
+    public function getMyMeetings()
+    {
+        $user = User::find(2);
+
+        if (!$user) {
+            return $this->sendError('User not authenticated.', [], 401);
+        }
+
+        $meetings = $user->meetings()->with(['agendas', 'room', 'attendees'])->get();
+
+        return $this->sendResponse('User meetings retrieved successfully.', $meetings);
+    }
+
     
 }
