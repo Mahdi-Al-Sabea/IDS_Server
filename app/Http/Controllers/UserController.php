@@ -19,7 +19,7 @@ class UserController extends Controller
     {
         $query = User::query();
 
-        if ($request->has('role')) {
+        if ($request->has('role') && $request->role !== null) {
             $query->where('role', $request->role);
         }
 
@@ -30,8 +30,8 @@ class UserController extends Controller
         if ($request->has('email')) {
             $query->where('email', 'like', '%' . $request->email . '%');
         }
-
-        $users = $query->get();
+        $perPage = $request->input('per_page', 5);
+        $users = $query->paginate($perPage);
 
         return $this->sendResponse('User list retrieved successfully.', $users);
     }
