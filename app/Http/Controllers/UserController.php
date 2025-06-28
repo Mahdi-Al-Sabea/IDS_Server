@@ -37,6 +37,25 @@ class UserController extends Controller
         return $this->sendResponse('User list retrieved successfully.', $users);
     }
 
+    public function indexNotPaginated(Request $request)
+    {
+        $query = User::query();
+
+        if ($request->has('role') && $request->role !== null) {
+            $query->where('role', $request->role);
+        }
+
+        if ($request->has('name')) {
+            $query->where('name', 'like', '%' . $request->name . '%');
+        }
+
+        if ($request->has('email')) {
+            $query->where('email', 'like', '%' . $request->email . '%');
+        }
+        $users = $query->get();
+        return $this->sendResponse('User list retrieved successfully.', $users);
+    }
+
 
     public function store(Request $request)
     {
