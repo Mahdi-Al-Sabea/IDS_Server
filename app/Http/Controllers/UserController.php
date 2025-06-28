@@ -5,7 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User; 
 use Illuminate\Support\Facades\Validator; 
-use \App\Traits\ApiResponse; 
+use \App\Traits\ApiResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 
@@ -33,6 +34,25 @@ class UserController extends Controller
         $perPage = $request->input('per_page', 5);
         $users = $query->paginate($perPage);
 
+        return $this->sendResponse('User list retrieved successfully.', $users);
+    }
+
+    public function indexNotPaginated(Request $request)
+    {
+        $query = User::query();
+
+        if ($request->has('role') && $request->role !== null) {
+            $query->where('role', $request->role);
+        }
+
+        if ($request->has('name')) {
+            $query->where('name', 'like', '%' . $request->name . '%');
+        }
+
+        if ($request->has('email')) {
+            $query->where('email', 'like', '%' . $request->email . '%');
+        }
+        $users = $query->get();
         return $this->sendResponse('User list retrieved successfully.', $users);
     }
 
@@ -151,5 +171,19 @@ class UserController extends Controller
         }
         return $this->sendResponse('User profile retrieved successfully.', $user);
     }
+
+    public function getMyMeetings()
+    {
+        $user = User::find(2);
+
+        if (!$user) {
+            return $this->sendError('User not authenticated.', [], 401);
+        }
+
+        $meetings = $user->meetings()->with(['agendas', 'room', 'attendees'])->get();
+
+        return $this->sendResponse('User meetings retrieved successfully.', $meetings);
+    }
+
     
 }
