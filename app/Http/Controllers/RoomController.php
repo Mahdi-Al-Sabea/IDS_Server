@@ -18,17 +18,20 @@ class RoomController extends Controller
     {
         $query = Room::with('features');
 
-        if ($request->has('floor')) {
+        if ($request->has('floor') && $request->floor !== null) {
             $query->where('floor', $request->floor);
         }
-        if ($request->has('minCapacity')) {
+        if ($request->has('minCapacity') && $request->minCapacity !== null) {
             $query->where('capacity', '>=', $request->minCapacity);
+        }
+        if ($request->has('maxCapacity') && $request->maxCapacity !== null) {
+            $query->where('capacity', '<=', $request->maxCapacity);
         }
         if ($request->has('roomname')) {
             $query->where('roomname', 'like', '%' . $request->roomname . '%');
         }
-
-        $rooms = $query->get();
+        $perPage = $request->input('per_page', 5); // Default to 5 rooms per page
+        $rooms = $query->paginate($perPage);
         return $this->sendResponse('Room list retrieved successfully.', $rooms);
     }
 
@@ -40,7 +43,7 @@ class RoomController extends Controller
     public function store(Request $request)
     {
          $validator = Validator::make($request->all(), [
-        'roomname' => 'required|string',
+        'roomname' => 'required|string|unique:rooms,roomname|max:255',
         'floor' => 'required|integer',
         'capacity' => 'required|integer|min:10|max:1000',
         'features' => 'array', // Optional
