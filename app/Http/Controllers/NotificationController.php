@@ -19,12 +19,14 @@ class NotificationController extends Controller
 
         $userId = $request->user()->id; // Get the authenticated user's ID
         $userRole = $request->user()->role; // Get the authenticated user's role
-/*         if ($userRole == 'Admin') {
-            $notifications = Notification::all(); // Admin can see all notifications
-            return $this->sendResponse('All notifications retrieved successfully.', $notifications);
-        } */
+
+       if($request->has('per_page')) {
         $perPage = $request->input('per_page', 5); // Default to 5 notifications per page
         $notifications = Notification::where('receiver_id', $userId)->paginate($perPage);
+        } else {
+            $notifications = Notification::where('receiver_id', $userId)->get(); // Get all notifications for the user
+        }
+
 
         if ($notifications->isEmpty()) {
             return $this->sendError('No notifications found for this user.', null, 404);

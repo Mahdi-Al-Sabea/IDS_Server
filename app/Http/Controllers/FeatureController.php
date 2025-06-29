@@ -14,9 +14,16 @@ class FeatureController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $features = Feature::all();
+        $query = Feature::query();
+
+        if ($request->has('title')) {
+            $query->where('title', 'like', '%' . $request->title . '%');
+        }
+
+        $perPage = $request->input('per_page', 5);
+        $features = $query->paginate($perPage);
         return $this->sendResponse('Feature list retrieved successfully.', $features);
     }
 
