@@ -84,4 +84,31 @@ class ActionItemController extends Controller
         $item->delete();
         return $this->sendResponse('Action item deleted successfully.', null, 204);
     }
+
+    public function getActionItemsByUser($id)
+    {
+        $items = ActionItem::where('assignedTo', $id)->with('assignee')->get();
+        
+        if ($items->isEmpty()) {
+            return $this->sendError('No action items found for this user.', [], 404);
+        }
+
+        return $this->sendResponse('Action items retrieved successfully.', $items);
+    }
+
+    public function toggleStatus(Request $request, $id)
+    {
+        $item = ActionItem::find($id);
+
+        if (!$item) {
+            return $this->sendError('Action item not found.', [], 404);
+        }
+
+        $newStatus = $item->status === 'Completed' ? 'Pending' : 'Completed';
+        $item->status = $newStatus;
+        $item->save();
+
+        return $this->sendResponse('Status updated.', $item);
+    }
+
 }

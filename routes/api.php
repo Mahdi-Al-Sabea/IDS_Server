@@ -58,7 +58,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post("User", [UserController::class, "store"]);
     Route::get("User", [UserController::class, "index"]);
     Route::get("UserNotPaginated", [UserController::class, "indexNotPaginated"]);
-    Route::get('/User/meetings', [UserController::class, 'getMyMeetings']);
+    Route::get('/User/{id}/meetings', [UserController::class, 'getMyMeetings']);
     Route::get("User/{id}", [UserController::class, "show"]);
     Route::put("User/{id}", [UserController::class, "update"]);
     Route::delete("User/{id}", [UserController::class, "destroy"]);
@@ -92,6 +92,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('ActionItem/{id}', [ActionItemController::class, 'show']);
     Route::put('ActionItem/{id}', [ActionItemController::class, 'update']);
     Route::delete('ActionItem/{id}', [ActionItemController::class, 'destroy']);
+    Route::get('User/{id}/ActionItems', [ActionItemController::class, 'getActionItemsByUser']);
+    Route::put('/ActionItem/{id}/toggle', [ActionItemController::class, 'toggleStatus']);
 
 });
 

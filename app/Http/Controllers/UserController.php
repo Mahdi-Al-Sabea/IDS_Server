@@ -172,9 +172,9 @@ class UserController extends Controller
         return $this->sendResponse('User profile retrieved successfully.', $user);
     }
 
-    public function getMyMeetings()
+    public function getMyMeetings($id)
     {
-        $user = User::find(2);
+        $user = User::find($id);
 
         if (!$user) {
             return $this->sendError('User not authenticated.', [], 401);
