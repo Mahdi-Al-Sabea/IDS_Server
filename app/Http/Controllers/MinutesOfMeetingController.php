@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use App\Traits\ApiResponse;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class MinutesOfMeetingController extends Controller
 {
@@ -113,5 +114,19 @@ class MinutesOfMeetingController extends Controller
         $minutes->delete();
 
         return $this->sendResponse('Minutes of meeting deleted successfully.', null, 204);
+    }
+
+
+    public function generateReport()
+    {
+            $data = [
+            'name' => 'John Doe',
+            'score' => 95,
+            ];
+
+        $pdf = Pdf::loadView('pdf.report', $data);
+    return response($pdf->output(), 200)
+        ->header('Content-Type', 'application/pdf')
+        ->header('Content-Disposition', 'inline; filename="report.pdf"');
     }
 }
