@@ -90,7 +90,7 @@ class ActionItemController extends Controller
         $items = ActionItem::where('assignedTo', $id)->with('assignee')->get();
         
         if ($items->isEmpty()) {
-            return $this->sendError('No action items found for this user.', [], 404);
+            return $this->sendError('No action items found for this user.', [], 200);
         }
 
         return $this->sendResponse('Action items retrieved successfully.', $items);
