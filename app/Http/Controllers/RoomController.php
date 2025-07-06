@@ -37,7 +37,25 @@ class RoomController extends Controller
         return $this->sendResponse('Room list retrieved successfully.', $rooms);
     }
 
-    
+    public function indexNotPaginated(Request $request)
+    {
+        $query = Room::with('features');
+
+        if ($request->has('floor') && $request->floor !== null) {
+            $query->where('floor', $request->floor);
+        }
+        if ($request->has('minCapacity') && $request->minCapacity !== null) {
+            $query->where('capacity', '>=', $request->minCapacity);
+        }
+        if ($request->has('maxCapacity') && $request->maxCapacity !== null) {
+            $query->where('capacity', '<=', $request->maxCapacity);
+        }
+        if ($request->has('roomname')) {
+            $query->where('roomname', 'like', '%' . $request->roomname . '%');
+        }
+        $rooms = $query->get();
+        return $this->sendResponse('Room list retrieved successfully.', $rooms);
+    }    
 
     /**
      * Store a newly created resource in storage.

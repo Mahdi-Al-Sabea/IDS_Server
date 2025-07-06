@@ -34,6 +34,7 @@ Route::middleware(['auth:sanctum','checkrole:Employee,Admin'])->group(function (
 Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get("Room", [RoomController::class, "index"]);
+    Route::get("RoomNotPaginated", [RoomController::class, "indexNotPaginated"]);
     Route::get("Room/{id}", [RoomController::class, "show"]);
     Route::post("Room", [RoomController::class, "store"]);
     Route::put("Room/{id}", [RoomController::class, "update"]);
