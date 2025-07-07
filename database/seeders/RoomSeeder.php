@@ -16,7 +16,8 @@ class RoomSeeder extends Seeder
         $room = Room::create([
             'roomname' => 'Conference Room A',
             'capacity' => 20,
-            'floor' => 11,
+            'floor' => 1,
+            'position' => 1, // Unique position on this floor
         ]);
 
         $room->features()->attach([1, 2]);
@@ -24,7 +25,8 @@ class RoomSeeder extends Seeder
         $room = Room::create([
             'roomname' => 'Meeting Room B',
             'capacity' => 10,
-            'floor' => -1,
+            'floor' => 2,
+            'position' => 2, // Unique position on this floor
         ]);
 
         $room->features()->attach([2, 3]);

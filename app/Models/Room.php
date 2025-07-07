@@ -18,6 +18,7 @@ class Room extends Model
         'roomname',
         'floor',
         'capacity',
+        'position', // Unique position on this floor
     ];
 
     public function features(){

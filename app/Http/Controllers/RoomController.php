@@ -9,6 +9,7 @@ use App\Models\Feature;
 use App\Models\Meeting;
 use App\Traits\ApiResponse; // Assuming you have this trait for API responses
 use Carbon\Carbon;
+use Illuminate\Validation\Rule;
 
 class RoomController extends Controller
 {
@@ -64,8 +65,16 @@ class RoomController extends Controller
     {
          $validator = Validator::make($request->all(), [
         'roomname' => 'required|string|unique:rooms,roomname|max:255',
-        'floor' => 'required|integer',
+        'floor' => 'required|integer|min:-10|max:10', // Assuming floors are numbered from 1 to 10
         'capacity' => 'required|integer|min:10|max:1000',
+        'position' => [
+        'required',
+        'integer',
+        'between:1,6',
+    Rule::unique('rooms')->where(function ($query) use ($request) {
+        return $query->where('floor', $request->floor);
+    }),
+        ],
         'features' => 'array', // Optional
         'features.*' => 'exists:features,id',
     ]);
@@ -74,7 +83,7 @@ class RoomController extends Controller
             return $this->sendError('Validation Error', $validator->errors());
         }
 
-    $room = Room::create($request->only(['roomname', 'floor', 'capacity']));
+    $room = Room::create($request->only(['roomname', 'floor', 'capacity', 'position']));
 
     // Attach features if provided
     if ($request->has('features')) {
@@ -103,26 +112,36 @@ class RoomController extends Controller
     {
          $room = Room::findOrFail($id);
 
-    $validator = Validator::make($request->all(), [
-        'roomname' => 'sometimes|string',
-        'floor' => 'sometimes|integer',
-        'capacity' => 'sometimes|integer|min:10|max:1000',
-        'features' => 'array',
-        'features.*' => 'exists:features,id',
-    ]);
+         
 
-    if ($validator->fails()) {
-        return $this->sendError('Validation Error', $validator->errors());
-    }
+        $validator = Validator::make($request->all(), [
+            'roomname' => 'sometimes|string',
+            'floor' => 'sometimes|integer|min:-10|max:10', // Assuming floors are numbered from -10 to 10
+            'capacity' => 'sometimes|integer|min:10|max:1000',
+            'position' => [
+            'required',
+            'integer',
+            'between:1,6',
+            Rule::unique('rooms')->where(function ($query) use ($request) {
+                return $query->where('floor', $request->floor);
+            })->ignore($room?->id), // ignore current room ID on update
+            ],
+            'features' => 'array',
+            'features.*' => 'exists:features,id',
+        ]);
 
-    $room->update($request->only(['roomname', 'floor', 'capacity']));
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors());
+        }
 
-    if ($request->has('features')) {
-        // Sync replaces the existing features with new ones
-        $room->features()->sync($request->features);
-    }
+        $room->update($request->only(['roomname', 'floor', 'capacity', 'position']));
 
-    return $this->sendResponse('Room updated successfully', $room->load('features'));
+        if ($request->has('features')) {
+            // Sync replaces the existing features with new ones
+            $room->features()->sync($request->features);
+        }
+
+        return $this->sendResponse('Room updated successfully', $room->load('features'));
     }
 
     /**
