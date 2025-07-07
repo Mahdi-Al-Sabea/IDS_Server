@@ -17,6 +17,8 @@ return new class extends Migration
             $table->string("roomname");
             $table->integer("floor");
             $table->integer("capacity");
+            $table->unsignedTinyInteger("position"); // position 1-6
+            $table->unique(['floor', 'position']);   // enforce uniqueness of position per floor
         });
     }
 
