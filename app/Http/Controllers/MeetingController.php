@@ -169,13 +169,13 @@ class MeetingController extends Controller
         'status' => 'sometimes|in:cancelled',
         'attendees' => 'sometimes|array',
         'attendees.*' => 'exists:users,id',
-        'agendas' => 'required|array|min:1',
-        'agendas.*.description' => 'required|string|max:10000',
+        'agendas' => 'sometimes|array|min:1',
+        'agendas.*.description' => 'sometimes|string|max:10000',
         ]);
 
-        if ($validator->fails()) {
+        /*if ($validator->fails()) {
             return $this->sendError('Validation Error', $validator->errors());
-        }
+        }*/
 
         $organizerId = Auth::id();
         /*if ($organizerId !== $meeting->organizer_id) {
