@@ -236,22 +236,22 @@ class MeetingController extends Controller
         }
 
         if (
-    $request->room_id != $meeting->room_id ||
-    Carbon::parse($request->startsAt)->ne($meeting->startsAt) ||
-    Carbon::parse($request->endsAt)->ne($meeting->endsAt)
-) {
-    $conflict = Meeting::where('room_id', $request->room_id)
-        ->where(function ($query) use ($request, $id) {
-            $query->where('startsAt', '<', $request->endsAt)
-                  ->where('endsAt', '>', $request->startsAt)
-                  ->where('id', '!=', $id);
-        })
-        ->exists();
+            $request->room_id != $meeting->room_id ||
+            Carbon::parse($request->startsAt)->ne($meeting->startsAt) ||
+            Carbon::parse($request->endsAt)->ne($meeting->endsAt)
+        ) {
+            $conflict = Meeting::where('room_id', $request->room_id)
+                ->where(function ($query) use ($request, $id) {
+                    $query->where('startsAt', '<', $request->endsAt)
+                        ->where('endsAt', '>', $request->startsAt)
+                        ->where('id', '!=', $id);
+                })
+                ->exists();
 
-    if ($conflict) {
-        return $this->sendError('Meeting conflict', ['This room is already booked during that time.'], 409);
-    }
-}
+            if ($conflict) {
+                return $this->sendError('Meeting conflict', ['This room is already booked during that time.'], 409);
+            }
+        }
 
         // Notify attendees if rescheduled
         if ($request->startsAt != $meeting->startsAt || $request->endsAt != $meeting->endsAt) {
