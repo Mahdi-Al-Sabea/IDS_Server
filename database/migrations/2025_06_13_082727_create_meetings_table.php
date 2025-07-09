@@ -18,7 +18,7 @@ return new class extends Migration
             $table->timestamps();
             $table->string("title");
             $table->string("description")->nullable();
-            $table->enum("status",["rescheduled","cancelled","booked"]);
+            $table->enum("status",["rescheduled","cancelled","booked","completed"]);
             $table->dateTime('startsAt');
             $table->dateTime("endsAt");
         });

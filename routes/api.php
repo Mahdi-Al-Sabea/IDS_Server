@@ -22,13 +22,13 @@ use App\Http\Controllers\NotificationController;
 Route::middleware(['auth:sanctum','checkemployee'])->group(function () {}); */
 
 
-Route::middleware(['auth:sanctum','checkrole:Admin'])->group(function () {});
+Route::middleware(['auth:sanctum', 'checkrole:Admin'])->group(function () {});
 
-Route::middleware(['auth:sanctum','checkrole:Employee'])->group(function () {});
+Route::middleware(['auth:sanctum', 'checkrole:Employee'])->group(function () {});
 
-Route::middleware(['auth:sanctum','checkrole:Guest'])->group(function () {});
+Route::middleware(['auth:sanctum', 'checkrole:Guest'])->group(function () {});
 
-Route::middleware(['auth:sanctum','checkrole:Employee,Admin'])->group(function () {});
+Route::middleware(['auth:sanctum', 'checkrole:Employee,Admin'])->group(function () {});
 
 
 Route::middleware(['auth:sanctum'])->group(function () {
@@ -56,6 +56,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get("MeetingByDate/{date}/{roomid}", [MeetingController::class, "indexByDate"]);
     Route::put("Meeting/{id}", [MeetingController::class, "update"]);
     Route::delete("Meeting/{id}", [MeetingController::class, "destroy"]);
+    Route::put('/Meeting/{id}/status', [MeetingController::class, 'updateStatus']);
 
     Route::get("User/Profile", [UserController::class, "getUserProfile"]);
     Route::post("User", [UserController::class, "store"]);
@@ -66,7 +67,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put("User/{id}", [UserController::class, "update"]);
     Route::delete("User/{id}", [UserController::class, "destroy"]);
 
-    
+
     Route::get("Room", [RoomController::class, "index"]);
     Route::get("Room/getAvailableRoomsForNextHour", [RoomController::class, "getAvailableRoomsForNextHour"]);
     Route::get("Room/{id}", [RoomController::class, "show"]);
@@ -82,7 +83,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get("Minutes/{id}", [MinutesOfMeetingController::class, "show"]);
     Route::put("Minutes/{id}", [MinutesOfMeetingController::class, "update"]);
     Route::delete("Minutes/{id}", [MinutesOfMeetingController::class, "destroy"]);
-    
+
 
 
     Route::get("Attachment", [AttachmentController::class, "index"]);
@@ -99,7 +100,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('ActionItem/{id}', [ActionItemController::class, 'destroy']);
     Route::get('User/{id}/ActionItems', [ActionItemController::class, 'getActionItemsByUser']);
     Route::put('/ActionItem/{id}/toggle', [ActionItemController::class, 'toggleStatus']);
-
 });
 
 

@@ -164,6 +164,45 @@ class MeetingController extends Controller
         return $this->sendResponse('Meeting retrieved successfully.', $meeting);
     }
 
+    public function updateStatus(Request $request, string $id)
+    {
+        $meeting = Meeting::find($id);
+        if (!$meeting) {
+            return $this->sendError('Meeting not found.', [], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|in:cancelled,completed',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors());
+        }
+
+        $meeting->status = $request->status;
+        $meeting->save();
+
+        // Notify attendees
+        $notificationTitle = 'Meeting Status Update';
+        $roomName = $meeting->room->roomname ?? 'the assigned room';
+        $statusMessage = match ($request->status) {
+            'cancelled' => 'has been cancelled.',
+            'completed' => 'has been completed.',
+            default => 'status has been updated.',
+        };
+
+        foreach ($meeting->attendees as $attendee) {
+            Mail::to($attendee->email)->send(new MeetingUpdateNotificationMail($meeting, $attendee));
+            $this->notificationController->store(
+                $notificationTitle,
+                "A meeting you had in room $roomName $statusMessage",
+                $attendee->id
+            );
+        }
+
+        return $this->sendResponse("Meeting status updated to {$request->status}.", $meeting);
+    }
+
 
     public function update(Request $request, string $id)
     {
@@ -178,7 +217,7 @@ class MeetingController extends Controller
             'description' => 'nullable|string',
             'startsAt' => 'required|date',
             'endsAt' => 'required|date|after_or_equal:startsAt',
-            'status' => 'sometimes|in:cancelled',
+            'status' => 'sometimes|in:cancelled,completed',
             'attendees' => 'sometimes|array',
             'attendees.*' => 'exists:users,id',
             'agendas' => 'sometimes|array|min:1',
@@ -219,8 +258,6 @@ class MeetingController extends Controller
 
         if ($request->has('status') && $request->status === 'cancelled') {
             $meeting->status = 'cancelled';
-            $meeting->endsAt = now();
-            $meeting->startsAt = now();
             $meeting->save();
 
             foreach ($meeting->attendees as $attendee) {
@@ -233,6 +270,22 @@ class MeetingController extends Controller
             }
 
             return $this->sendResponse('Meeting cancelled successfully.', $meeting);
+        }
+
+        if ($request->has('status') && $request->status === 'completed') {
+            $meeting->status = 'completed';
+            $meeting->save();
+
+            foreach ($meeting->attendees as $attendee) {
+                Mail::to($attendee->email)->send(new MeetingUpdateNotificationMail($meeting, $attendee));
+                $this->notificationController->store(
+                    'Meeting Completion',
+                    'A meeting you had in room ' . $meeting->room->roomname . ' has been completed.',
+                    $attendee->id
+                );
+            }
+
+            return $this->sendResponse('Meeting completed successfully.', $meeting);
         }
 
         if (
