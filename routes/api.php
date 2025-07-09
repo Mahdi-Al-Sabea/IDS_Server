@@ -43,6 +43,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::post("Feature", [FeatureController::class, "store"]);
     Route::get("Feature", [FeatureController::class, "index"]);
+    Route::get("FeatureNotPaginated", [FeatureController::class, "indexNotPaginated"]);
     Route::get("Feature/{id}", [FeatureController::class, "show"]);
     Route::put("Feature/{id}", [FeatureController::class, "update"]);
     Route::delete("Feature/{id}", [FeatureController::class, "destroy"]);
@@ -52,6 +53,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post("Meeting", [MeetingController::class, "store"]);
     Route::get("Meeting", [MeetingController::class, "index"]);
     Route::get("Meeting/{id}", [MeetingController::class, "show"]);
+    Route::get("MeetingByDate/{date}/{roomid}", [MeetingController::class, "indexByDate"]);
     Route::put("Meeting/{id}", [MeetingController::class, "update"]);
     Route::delete("Meeting/{id}", [MeetingController::class, "destroy"]);
 

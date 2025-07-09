@@ -27,6 +27,18 @@ class FeatureController extends Controller
         return $this->sendResponse('Feature list retrieved successfully.', $features);
     }
 
+    public function indexNotPaginated(Request $request)
+    {
+        $query = Feature::query();
+
+        if ($request->has('title')) {
+            $query->where('title', 'like', '%' . $request->title . '%');
+        }
+
+        $features = $query->get();
+        return $this->sendResponse('Feature list retrieved successfully.', $features);
+    }
+
     /**
      * Store a newly created resource in storage.
      */

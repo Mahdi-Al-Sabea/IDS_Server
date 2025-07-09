@@ -14,7 +14,7 @@ class ActionItemController extends Controller
 
     public function index()
     {
-        $items = ActionItem::with('assignedUser')->get();
+        $items = ActionItem::with('assignee')->get();
         return $this->sendResponse('Action items retrieved successfully.', $items);
     }
 

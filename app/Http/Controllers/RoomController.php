@@ -54,43 +54,44 @@ class RoomController extends Controller
         if ($request->has('roomname')) {
             $query->where('roomname', 'like', '%' . $request->roomname . '%');
         }
+        $query = Room::with('features');
         $rooms = $query->get();
         return $this->sendResponse('Room list retrieved successfully.', $rooms);
-    }    
+    }
 
     /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
-         $validator = Validator::make($request->all(), [
-        'roomname' => 'required|string|unique:rooms,roomname|max:255',
-        'floor' => 'required|integer|min:-10|max:10', // Assuming floors are numbered from 1 to 10
-        'capacity' => 'required|integer|min:10|max:1000',
-        'position' => [
-        'required',
-        'integer',
-        'between:1,6',
-    Rule::unique('rooms')->where(function ($query) use ($request) {
-        return $query->where('floor', $request->floor);
-    }),
-        ],
-        'features' => 'array', // Optional
-        'features.*' => 'exists:features,id',
-    ]);
+        $validator = Validator::make($request->all(), [
+            'roomname' => 'required|string|unique:rooms,roomname|max:255',
+            'floor' => 'required|integer|min:-10|max:10', // Assuming floors are numbered from 1 to 10
+            'capacity' => 'required|integer|min:10|max:1000',
+            'position' => [
+                'required',
+                'integer',
+                'between:1,6',
+                Rule::unique('rooms')->where(function ($query) use ($request) {
+                    return $query->where('floor', $request->floor);
+                }),
+            ],
+            'features' => 'array', // Optional
+            'features.*' => 'exists:features,id',
+        ]);
 
         if ($validator->fails()) {
             return $this->sendError('Validation Error', $validator->errors());
         }
 
-    $room = Room::create($request->only(['roomname', 'floor', 'capacity', 'position']));
+        $room = Room::create($request->only(['roomname', 'floor', 'capacity', 'position']));
 
-    // Attach features if provided
-    if ($request->has('features')) {
-        $room->features()->attach($request->features);
-    }
+        // Attach features if provided
+        if ($request->has('features')) {
+            $room->features()->attach($request->features);
+        }
 
-    return $this->sendResponse('Room created successfully', $room->load('features'), 201);
+        return $this->sendResponse('Room created successfully', $room->load('features'), 201);
     }
 
     /**
@@ -110,21 +111,21 @@ class RoomController extends Controller
      */
     public function update(Request $request, string $id)
     {
-         $room = Room::findOrFail($id);
+        $room = Room::findOrFail($id);
 
-         
+
 
         $validator = Validator::make($request->all(), [
             'roomname' => 'sometimes|string',
             'floor' => 'sometimes|integer|min:-10|max:10', // Assuming floors are numbered from -10 to 10
             'capacity' => 'sometimes|integer|min:10|max:1000',
             'position' => [
-            'required',
-            'integer',
-            'between:1,6',
-            Rule::unique('rooms')->where(function ($query) use ($request) {
-                return $query->where('floor', $request->floor);
-            })->ignore($room?->id), // ignore current room ID on update
+                'required',
+                'integer',
+                'between:1,6',
+                Rule::unique('rooms')->where(function ($query) use ($request) {
+                    return $query->where('floor', $request->floor);
+                })->ignore($room?->id), // ignore current room ID on update
             ],
             'features' => 'array',
             'features.*' => 'exists:features,id',
@@ -156,7 +157,7 @@ class RoomController extends Controller
 
         // Detach features before deleting the room
         $room->features()->detach();
-        
+
         $room->delete();
         return $this->sendResponse('Room deleted successfully.', null, 204);
     }
@@ -166,7 +167,7 @@ class RoomController extends Controller
     public function getAvailableRoomsForNextHour()
     {
         $nowLebanon = Carbon::now('Asia/Beirut');
-        
+
         $oneHourLaterUtc = $nowLebanon->copy()->addHour();
         $now = Carbon::now();
         $oneHourLater = $now->copy()->addHour();
@@ -199,5 +200,4 @@ class RoomController extends Controller
             'available_rooms' => $availableRooms,
         ]);
     }
-
 }

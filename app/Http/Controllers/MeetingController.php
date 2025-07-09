@@ -15,6 +15,8 @@ use App\Mail\BookingConfirmationNotificationMail;
 use App\Models\Notification;
 use App\Http\Controllers\NotificationController;
 use App\Mail\MeetingUpdateNotificationMail;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Date;
 
 class MeetingController extends Controller
 {
@@ -22,7 +24,8 @@ class MeetingController extends Controller
 
     protected $notificationController;
 
-    public function __construct(NotificationController $notificationController) {
+    public function __construct(NotificationController $notificationController)
+    {
         $this->notificationController = $notificationController;
     }
 
@@ -53,83 +56,92 @@ class MeetingController extends Controller
         return $this->sendResponse('Meeting list retrieved successfully.', $meetings);
     }
 
+    public function indexByDate($date, $roomid)
+    {
+        // Make sure the date is a valid format
+        $parsedDate = \Carbon\Carbon::parse($date)->toDateString();
+
+        $meetings = Meeting::whereDate('startsAt', $parsedDate)->where('room_id', $roomid)->get();
+        return $this->sendResponse('Meetings retrieved successfully.', $meetings);
+    }
+
 
     /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        'room_id' => 'required|exists:rooms,id',
-        /* 'organizer_id' => 'required|exists:users,id', */
-        'title' => 'required|string|max:255',
-        'description' => 'nullable|string',
-        'startsAt' => 'required|date',
-        'endsAt' => 'required|date|after_or_equal:startsAt',
-        'attendees' => 'sometimes|array',
-        'attendees.*' => 'exists:users,id',
-        'agendas' => 'required|array|min:1',
-        'agendas.*.description' => 'required|string|max:10000',
-    ]);
+    {
+        $validator = Validator::make($request->all(), [
+            'room_id' => 'required|exists:rooms,id',
+            /* 'organizer_id' => 'required|exists:users,id', */
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'startsAt' => 'required|date',
+            'endsAt' => 'required|date|after_or_equal:startsAt',
+            'attendees' => 'sometimes|array',
+            'attendees.*' => 'exists:users,id',
+            'agendas' => 'required|array|min:1',
+            'agendas.*.description' => 'required|string|max:10000',
+        ]);
 
-    if ($validator->fails()) {
-        return $this->sendError('Validation Error', $validator->errors());
-    }
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors());
+        }
 
         // ✅ Check for overlapping meetings
-    $conflict = Meeting::where('room_id', $request->room_id)
-        ->where(function ($query) use ($request) {
-            $query->where('startsAt', '<', $request->endsAt)
-                  ->where('endsAt', '>', $request->startsAt);
-        })
-        ->exists();
+        $conflict = Meeting::where('room_id', $request->room_id)
+            ->where(function ($query) use ($request) {
+                $query->where('startsAt', '<', $request->endsAt)
+                    ->where('endsAt', '>', $request->startsAt);
+            })
+            ->exists();
 
-    if ($conflict) {
-        return $this->sendError('Meeting conflict', ['This room is already booked during that time.'], 409);
-    }
+        if ($conflict) {
+            return $this->sendError('Meeting conflict', ['This room is already booked during that time.'], 409);
+        }
 
 
 
-    $organizerId = Auth::id();
+        $organizerId = Auth::id();
 
-    // Create the meeting
-    $meeting = Meeting::create([
-        'room_id' => $request->room_id,
-        'organizer_id' => $organizerId,
-        'title' => $request->title,
-        'description' => $request->description,
-        'startsAt' => $request->startsAt,
-        'endsAt' => $request->endsAt,
-        'status' => 'booked',
-    ]);
+        // Create the meeting
+        $meeting = Meeting::create([
+            'room_id' => $request->room_id,
+            'organizer_id' => $organizerId,
+            'title' => $request->title,
+            'description' => $request->description,
+            'startsAt' => $request->startsAt,
+            'endsAt' => $request->endsAt,
+            'status' => 'booked',
+        ]);
 
-    // Attach attendees
-    $meeting->attendees()->sync($request->attendees ?? []);
+        // Attach attendees
+        $meeting->attendees()->sync($request->attendees ?? []);
 
-    // Create agendas
-    $meeting->agendas()->createMany($request->agendas);
+        // Create agendas
+        $meeting->agendas()->createMany($request->agendas);
 
-    
 
-    Mail::to(Auth::user()->email)->send(new BookingConfirmationNotificationMail($meeting, Auth::user()));
-    $this->notificationController->store(
-        'Meeting Confirmation',
-        'Your meeting for room ' . $meeting->room->roomname . ' has been successfully booked.',
-        Auth::user()->id
-    );
 
-    foreach ($meeting->attendees as $attendee) {
-        // Send notification to each attendee
-        Mail::to($attendee->email)->send(new InvitationNotificationMail($meeting, $attendee));
+        Mail::to(Auth::user()->email)->send(new BookingConfirmationNotificationMail($meeting, Auth::user()));
         $this->notificationController->store(
-            'Meeting Invitation',
-            'You have been invited to a meeting in room ' . $meeting->room->roomname . '.',
-            $attendee->id
+            'Meeting Confirmation',
+            'Your meeting for room ' . $meeting->room->roomname . ' has been successfully booked.',
+            Auth::user()->id
         );
-    }
 
-    return $this->sendResponse('Meeting created successfully.', $meeting->load(['attendees', 'agendas']), 201);
-}
+        foreach ($meeting->attendees as $attendee) {
+            // Send notification to each attendee
+            Mail::to($attendee->email)->send(new InvitationNotificationMail($meeting, $attendee));
+            $this->notificationController->store(
+                'Meeting Invitation',
+                'You have been invited to a meeting in room ' . $meeting->room->roomname . '.',
+                $attendee->id
+            );
+        }
+
+        return $this->sendResponse('Meeting created successfully.', $meeting->load(['attendees', 'agendas']), 201);
+    }
 
 
 
@@ -161,37 +173,57 @@ class MeetingController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-        'room_id' => 'required|exists:rooms,id',
-        'title' => 'required|string|max:255',
-        'description' => 'nullable|string',
-        'startsAt' => 'required|date',
-        'endsAt' => 'required|date|after_or_equal:startsAt',
-        'status' => 'sometimes|in:cancelled',
-        'attendees' => 'sometimes|array',
-        'attendees.*' => 'exists:users,id',
-        'agendas' => 'sometimes|array|min:1',
-        'agendas.*.description' => 'sometimes|string|max:10000',
+            'room_id' => 'required|exists:rooms,id',
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'startsAt' => 'required|date',
+            'endsAt' => 'required|date|after_or_equal:startsAt',
+            'status' => 'sometimes|in:cancelled',
+            'attendees' => 'sometimes|array',
+            'attendees.*' => 'exists:users,id',
+            'agendas' => 'sometimes|array|min:1',
+            'agendas.*.description' => 'sometimes|string|max:10000',
+
+            // Minutes validation
+            'minutes' => 'sometimes|array',
+            'minutes.id' => 'sometimes|exists:minutes_of_meetings,id',
+            'minutes.discussedPoints' => 'nullable|string',
+            'minutes.decisions' => 'nullable|string',
+
+            // Action items validation
+            'minutes.action_items' => 'sometimes|array',
+            'minutes.action_items.*.id' => 'sometimes|exists:action_items,id',
+            'minutes.action_items.*.description' => 'nullable|string',
+            'minutes.action_items.*.status' => 'nullable|string',
+            'minutes.action_items.*.assignee_id' => 'nullable|exists:users,id',
+
+            // Attachments validation
+            'minutes.attachments' => 'sometimes|array',
+            'minutes.attachments.*.id' => 'sometimes|exists:attachments,id',
+            'minutes.attachments.*.fileName' => 'nullable|string',
+            'minutes.attachments.*.filePath' => 'nullable|string',
+            'minutes.attachments.*.uploader_id' => 'nullable|exists:users,id',
         ]);
 
-        /*if ($validator->fails()) {
+        if ($validator->fails()) {
             return $this->sendError('Validation Error', $validator->errors());
-        }*/
+        }
 
         $organizerId = Auth::id();
-        /*if ($organizerId !== $meeting->organizer_id) {
+        // Uncomment if you want to restrict updates to organizer only
+        /*
+        if ($organizerId !== $meeting->organizer_id) {
             return $this->sendError('Unauthorized', ['message' => 'You must be the organizer to update this meeting.'], 401);
-        }*/
+        }
+        */
 
-        if ($request->has('status') && $request->status === 'cancelled') { 
-            // If the meeting is being cancelled, we can skip the conflict check
+        if ($request->has('status') && $request->status === 'cancelled') {
             $meeting->status = 'cancelled';
-            $meeting->endsAt = now(); // Set the end time to now or any other logic you prefer
-            $meeting->startsAt = now(); // Set the start time to now or any other logic you prefer
+            $meeting->endsAt = now();
+            $meeting->startsAt = now();
             $meeting->save();
 
-
             foreach ($meeting->attendees as $attendee) {
-                // Send notification to each attendee
                 Mail::to($attendee->email)->send(new MeetingUpdateNotificationMail($meeting, $attendee));
                 $this->notificationController->store(
                     'Meeting Cancellation',
@@ -201,27 +233,30 @@ class MeetingController extends Controller
             }
 
             return $this->sendResponse('Meeting cancelled successfully.', $meeting);
-        }         
+        }
 
-            // ✅ Check for overlapping meetings
-        $conflict = Meeting::where('room_id', $request->room_id)
+        if (
+    $request->room_id != $meeting->room_id ||
+    Carbon::parse($request->startsAt)->ne($meeting->startsAt) ||
+    Carbon::parse($request->endsAt)->ne($meeting->endsAt)
+) {
+    $conflict = Meeting::where('room_id', $request->room_id)
         ->where(function ($query) use ($request, $id) {
             $query->where('startsAt', '<', $request->endsAt)
-                ->where('endsAt', '>', $request->startsAt)
-                ->where('id', '!=', $id); // Exclude the current meeting
+                  ->where('endsAt', '>', $request->startsAt)
+                  ->where('id', '!=', $id);
         })
         ->exists();
 
-        if ($conflict) {
-            return $this->sendError('Meeting conflict', ['This room is already booked during that time.'], 409);
-        }
+    if ($conflict) {
+        return $this->sendError('Meeting conflict', ['This room is already booked during that time.'], 409);
+    }
+}
 
-        if($request->startsAt !=$meeting->startsAt || $request->endsAt != $meeting->endsAt) {
+        // Notify attendees if rescheduled
+        if ($request->startsAt != $meeting->startsAt || $request->endsAt != $meeting->endsAt) {
             $request->merge(['status' => 'rescheduled']);
-            // If the start or end time has changed, we need to notify attendees
             foreach ($meeting->attendees as $attendee) {
-                 // Set status to updated for notification
-                // Send notification to each attendee
                 Mail::to($attendee->email)->send(new MeetingUpdateNotificationMail($meeting, $attendee));
                 $this->notificationController->store(
                     'Meeting Update',
@@ -231,7 +266,7 @@ class MeetingController extends Controller
             }
         }
 
-        // Update the meeting
+        // Update meeting main fields
         $meeting->update($request->only(['room_id', 'title', 'description', 'startsAt', 'endsAt', 'status']));
 
         // Update attendees
@@ -245,8 +280,57 @@ class MeetingController extends Controller
             $meeting->agendas()->createMany($request->agendas);
         }
 
-        return $this->sendResponse('Meeting updated successfully.', $meeting->load(['attendees', 'agendas']));
-        
+        // Update or create minutes and related action items and attachments
+        if ($request->has('minutes')) {
+            $minutesData = $request->minutes;
+
+            $minutes = $meeting->minutes()->updateOrCreate(
+                ['id' => $minutesData['id'] ?? null],
+                [
+                    'discussedPoints' => $minutesData['discussedPoints'] ?? null,
+                    'decisions' => $minutesData['decisions'] ?? null,
+                ]
+            );
+
+            // Action items update
+            if (isset($minutesData['action_items'])) {
+                $existingActionItemIds = collect($minutesData['action_items'])->pluck('id')->filter()->toArray();
+                $minutes->actionItems()->whereNotIn('id', $existingActionItemIds)->delete();
+
+                foreach ($minutesData['action_items'] as $itemData) {
+                    $minutes->actionItems()->updateOrCreate(
+                        ['id' => $itemData['id'] ?? null],
+                        [
+                            'description' => $itemData['description'],
+                            'status' => $itemData['status'],
+                            'assignee_id' => $itemData['assignee_id'],
+                        ]
+                    );
+                }
+            }
+
+            // Attachments update
+            if (isset($minutesData['attachments'])) {
+                $existingAttachmentIds = collect($minutesData['attachments'])->pluck('id')->filter()->toArray();
+                $minutes->attachments()->whereNotIn('id', $existingAttachmentIds)->delete();
+
+                foreach ($minutesData['attachments'] as $attachmentData) {
+                    $minutes->attachments()->updateOrCreate(
+                        ['id' => $attachmentData['id'] ?? null],
+                        [
+                            'fileName' => $attachmentData['fileName'],
+                            'filePath' => $attachmentData['filePath'],
+                            'uploader_id' => $attachmentData['uploader_id'],
+                        ]
+                    );
+                }
+            }
+        }
+
+        return $this->sendResponse(
+            'Meeting updated successfully.',
+            $meeting->load(['attendees', 'agendas', 'minutes.attachments.uploader', 'minutes.actionItems.assignee'])
+        );
     }
 
     /**
@@ -268,6 +352,5 @@ class MeetingController extends Controller
         $meeting->delete();
 
         return $this->sendResponse('Meeting deleted successfully.', null, 204);
-        
     }
 }
