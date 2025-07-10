@@ -212,14 +212,15 @@ class MeetingController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'room_id' => 'required|exists:rooms,id',
-            'title' => 'required|string|max:255',
+            'room_id' => 'sometimes|exists:rooms,id',
+            'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
-            'startsAt' => 'required|date',
-            'endsAt' => 'required|date|after_or_equal:startsAt',
+            'startsAt' => 'sometimes|date',
+            'endsAt' => 'sometimes|date|after_or_equal:startsAt',
             'status' => 'sometimes|in:cancelled,completed',
             'attendees' => 'sometimes|array',
-            'attendees.*' => 'exists:users,id',
+            'attendees' => 'sometimes|array',
+            'attendees.*.Attended' => 'nullable|boolean',
             'agendas' => 'sometimes|array|min:1',
             'agendas.*.description' => 'sometimes|string|max:10000',
 
@@ -324,7 +325,7 @@ class MeetingController extends Controller
 
         // Update attendees
         if ($request->has('attendees')) {
-            $meeting->attendees()->sync($request->attendees);
+            $meeting->attendees()->sync($request->attendees); // Handles pivot fields
         }
 
         // Update agendas

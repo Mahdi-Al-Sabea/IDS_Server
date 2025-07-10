@@ -21,7 +21,7 @@ class Meeting extends Model
         'startsAt',
         'endsAt',
         'room_id',
-         'organizer_id', 
+        'organizer_id',
     ];
 
     /**
@@ -34,7 +34,8 @@ class Meeting extends Model
         'endsAt' => 'datetime',
     ];
 
-    public function agendas(){
+    public function agendas()
+    {
         return $this->hasMany(Agenda::class);
     }
 
@@ -43,8 +44,10 @@ class Meeting extends Model
         return $this->hasOne(MinutesOfMeeting::class);
     }
 
-    public function attendees(){
-        return $this->belongsToMany(User::class, 'meeting_attendee', 'meeting_id', 'user_id');
+    public function attendees()
+    {
+        return $this->belongsToMany(User::class, 'meeting_attendee', 'meeting_id', 'user_id')
+            ->withPivot('Attended');
     }
 
     public function room()
