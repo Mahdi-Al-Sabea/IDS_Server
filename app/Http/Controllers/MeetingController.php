@@ -15,6 +15,7 @@ use App\Mail\BookingConfirmationNotificationMail;
 use App\Models\Notification;
 use App\Http\Controllers\NotificationController;
 use App\Mail\MeetingUpdateNotificationMail;
+use App\Models\MinutesOfMeeting;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Date;
 
@@ -51,7 +52,7 @@ class MeetingController extends Controller
         }
 
         // Get the meetings
-        $meetings = $query->get();
+        $meetings = $query->with("room")->get();
 
         return $this->sendResponse('Meeting list retrieved successfully.', $meetings);
     }
@@ -73,7 +74,6 @@ class MeetingController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'room_id' => 'required|exists:rooms,id',
-            /* 'organizer_id' => 'required|exists:users,id', */
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'startsAt' => 'required|date',
@@ -120,6 +120,10 @@ class MeetingController extends Controller
 
         // Create agendas
         $meeting->agendas()->createMany($request->agendas);
+        $meeting->minutes()->create([
+            'decisions' => '',
+            'discussedPoints' => '',
+        ]);
 
 
 
@@ -211,7 +215,7 @@ class MeetingController extends Controller
             return $this->sendError('Meeting not found.', [], 404);
         }
 
-        $validator = Validator::make($request->all(), [
+        /*$validator = Validator::make($request->all(), [
             'room_id' => 'sometimes|exists:rooms,id',
             'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
@@ -247,7 +251,7 @@ class MeetingController extends Controller
 
         if ($validator->fails()) {
             return $this->sendError('Validation Error', $validator->errors());
-        }
+        }*/
 
         $organizerId = Auth::id();
         // Uncomment if you want to restrict updates to organizer only

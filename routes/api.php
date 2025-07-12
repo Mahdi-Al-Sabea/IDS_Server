@@ -91,6 +91,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get("Attachment/{id}", [AttachmentController::class, "show"]);
     Route::put("Attachment/{id}", [AttachmentController::class, "update"]);
     Route::delete("Attachment/{id}", [AttachmentController::class, "destroy"]);
+    Route::post('/Attachment/bulk', [AttachmentController::class, 'storeBulk']);
 
 
     Route::get('ActionItem', [ActionItemController::class, 'index']);

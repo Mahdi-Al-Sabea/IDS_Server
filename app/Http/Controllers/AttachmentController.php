@@ -12,14 +12,14 @@ class AttachmentController extends Controller
 {
     use ApiResponse;
 
-    
+
     public function index()
     {
         $attachments = Attachment::all();
         return $this->sendResponse('Attachment list retrieved successfully.', $attachments);
     }
 
-  
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -50,7 +50,39 @@ class AttachmentController extends Controller
         return $this->sendResponse('Attachment uploaded successfully.', $attachment, 201);
     }
 
-    
+    public function storeBulk(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'files' => 'required|array',
+            'files.*' => 'file|mimes:pdf,doc,docx,jpg,jpeg,png,xlsx,xls|max:20480',
+            'minutes_of_meeting_id' => 'required|exists:minutes_of_meetings,id',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation Error', $validator->errors());
+        }
+
+        $uploadedAttachments = [];
+
+        foreach ($request->file('files') as $file) {
+            $newFileName = time() . '-' . $file->getClientOriginalName();
+            $file->storeAs('attachments', $newFileName, 'public');
+
+            $attachment = Attachment::create([
+                'fileName' => $file->getClientOriginalName(),
+                'filePath' => 'storage/attachments/' . $newFileName,
+                'uploadedBy' => Auth::id(),
+                'minutes_of_meeting_id' => $request->minutes_of_meeting_id,
+            ]);
+
+            $uploadedAttachments[] = $attachment;
+        }
+
+        return $this->sendResponse('Attachments uploaded successfully.', $uploadedAttachments, 201);
+    }
+
+
+
     public function show($id)
     {
         $attachment = Attachment::find($id);
@@ -62,7 +94,7 @@ class AttachmentController extends Controller
         return $this->sendResponse('Attachment retrieved successfully.', $attachment);
     }
 
-    
+
     public function destroy($id)
     {
         $attachment = Attachment::find($id);
