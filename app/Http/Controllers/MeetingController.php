@@ -36,29 +36,40 @@ class MeetingController extends Controller
      */
     public function index(Request $request)
     {
-        // Optionally filter by room_id, organizer_id, or status
-        $query = Meeting::with(['attendees', 'agendas']);
+        // Auto-complete past meetings
+        Meeting::where('startsAt', '<', Carbon::now()->toDateTimeString())
+            ->where('endsAt', '<', Carbon::now()->toDateTimeString())
+            ->where('status', '!=', 'completed') // Optional, to avoid redundant writes
+            ->update(['status' => 'completed']);
 
-        if ($request->has('room_id')) {
+        $query = Meeting::with(['attendees', 'agendas', 'room']);
+
+        // Optional filters
+        if ($request->filled('room_id')) {
             $query->where('room_id', $request->room_id);
         }
 
-        if ($request->has('organizer_id')) {
+        if ($request->filled('organizer_id')) {
             $query->where('organizer_id', $request->organizer_id);
         }
 
-        if ($request->has('status')) {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        // Get the meetings
-        $meetings = $query->with("room")->get();
+        // Execute query
+        $meetings = $query->get();
 
         return $this->sendResponse('Meeting list retrieved successfully.', $meetings);
     }
 
+
     public function indexByDate($date, $roomid)
     {
+        Meeting::where('startsAt', '<', now())
+            ->where('endsAt', '<', now())
+            ->update(['status' => 'completed']);
+
         // Make sure the date is a valid format
         $parsedDate = \Carbon\Carbon::parse($date)->toDateString();
 
@@ -160,7 +171,10 @@ class MeetingController extends Controller
             'minutes.actionItems.assignee',
         ])->find($id);
 
-
+        if ($meeting->startsAt->lt(now()) && $meeting->endsAt->lt(now())) {
+            $meeting->status = "completed";
+            $meeting->save();
+        }
         if (!$meeting) {
             return $this->sendError('Meeting not found.', [], 404);
         }

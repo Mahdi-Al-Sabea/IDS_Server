@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Meeting;
 use Illuminate\Http\Request;
-use App\Models\User; 
-use Illuminate\Support\Facades\Validator; 
+use App\Models\User;
+use Illuminate\Support\Facades\Validator;
 use \App\Traits\ApiResponse;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
@@ -13,7 +15,7 @@ use Illuminate\Support\Facades\Hash;
 class UserController extends Controller
 {
 
-    use ApiResponse; 
+    use ApiResponse;
 
 
     public function index(Request $request)
@@ -60,16 +62,16 @@ class UserController extends Controller
     public function store(Request $request)
     {
 
-        $validator = Validator::make($request->all(),[
-           'name'=>"required",
-            'profile_picture'=>"nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048",
-            'role'=>"required|in:Admin,Employee,Guest",
-            'email'=>"required|email|unique:users,email",
-            'password'=>"required|min:6|confirmed",
+        $validator = Validator::make($request->all(), [
+            'name' => "required",
+            'profile_picture' => "nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048",
+            'role' => "required|in:Admin,Employee,Guest",
+            'email' => "required|email|unique:users,email",
+            'password' => "required|min:6|confirmed",
         ]);
-        if($validator->fails()){
+        if ($validator->fails()) {
             $errors = $validator->errors();
-            return $this->sendError("Validation Error",$errors);
+            return $this->sendError("Validation Error", $errors);
         }
 
 
@@ -80,7 +82,7 @@ class UserController extends Controller
             $newname = time() . '-' . $file->getClientOriginalName();
             $file->storeAs('ProfileImages', $newname, 'public');
             $data['profile_picture'] = 'storage/ProfileImages/' . $newname;
-        }else{
+        } else {
             $data['profile_picture'] = 'storage/ProfileImages/default.png';
         }
 
@@ -128,7 +130,7 @@ class UserController extends Controller
             return $this->sendError("Validation Error", $errors);
         }
 
-                $data = $request->only(['name', 'email', 'role', 'password']);
+        $data = $request->only(['name', 'email', 'role', 'password']);
 
         if ($request->hasFile('profile_picture')) {
             $file = $request->file('profile_picture');
@@ -144,7 +146,7 @@ class UserController extends Controller
             // If password is not provided, keep the existing password
             unset($data['password']);
         }
-        
+
 
         $user->update($data);
         return $this->sendResponse('User updated successfully.', $user);
@@ -174,6 +176,10 @@ class UserController extends Controller
 
     public function getMyMeetings($id)
     {
+        Meeting::where('startsAt', '<', Carbon::now()->toDateTimeString())
+            ->where('endsAt', '<', Carbon::now()->toDateTimeString())
+            ->where('status', '!=', 'completed') // Optional, to avoid redundant writes
+            ->update(['status' => 'completed']);
         $user = User::find($id);
 
         if (!$user) {
@@ -184,6 +190,4 @@ class UserController extends Controller
 
         return $this->sendResponse('User meetings retrieved successfully.', $meetings);
     }
-
-    
 }
