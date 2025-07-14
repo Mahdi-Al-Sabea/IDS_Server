@@ -77,7 +77,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get("Notification/User/{userId}", [NotificationController::class, "showByUserId"]);
 
 
-    Route::get("Minutes/generateReport", [MinutesOfMeetingController::class, "generateReport"]);
+    Route::get("Minutes/generateReport/{id}", [MinutesOfMeetingController::class, "generateReport"]);
     Route::get("Minutes", [MinutesOfMeetingController::class, "index"]);
     Route::post("Minutes", [MinutesOfMeetingController::class, "store"]);
     Route::get("Minutes/{id}", [MinutesOfMeetingController::class, "show"]);

@@ -117,14 +117,13 @@ class MinutesOfMeetingController extends Controller
     }
 
 
-    public function generateReport()
+    public function generateReport($id)
     {
-            $data = [
-            'name' => 'John Doe',
-            'score' => 95,
-            ];
 
-        $pdf = Pdf::loadView('pdf.report', $data);
+
+    $minutes = MinutesOfMeeting::with(['meeting', 'attachments', 'actionItems'])->find($id);
+
+        $pdf = Pdf::loadView('pdf.report', ['minutes' => $minutes]);
     return response($pdf->output(), 200)
         ->header('Content-Type', 'application/pdf')
         ->header('Content-Disposition', 'inline; filename="report.pdf"');
