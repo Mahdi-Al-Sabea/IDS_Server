@@ -71,10 +71,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get("Room", [RoomController::class, "index"]);
     Route::get("Room/getAvailableRoomsForNextHour", [RoomController::class, "getAvailableRoomsForNextHour"]);
     Route::get("Room/{id}", [RoomController::class, "show"]);
+
+
     Route::get("Notification", [NotificationController::class, "index"]);
     Route::get("Notification/{id}", [NotificationController::class, "show"]);
     Route::delete("Notification/{id}", [NotificationController::class, "destroy"]);
     Route::get("Notification/User/{userId}", [NotificationController::class, "showByUserId"]);
+    Route::delete('/Notifications/markAllRead', [NotificationController::class, 'destroyAll']);
 
 
     Route::get("Minutes/generateReport", [MinutesOfMeetingController::class, "generateReport"]);

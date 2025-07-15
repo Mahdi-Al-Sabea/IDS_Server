@@ -20,9 +20,9 @@ class NotificationController extends Controller
         $userId = $request->user()->id; // Get the authenticated user's ID
         $userRole = $request->user()->role; // Get the authenticated user's role
 
-       if($request->has('per_page')) {
-        $perPage = $request->input('per_page', 5); // Default to 5 notifications per page
-        $notifications = Notification::where('receiver_id', $userId)->paginate($perPage);
+        if ($request->has('per_page')) {
+            $perPage = $request->input('per_page', 5); // Default to 5 notifications per page
+            $notifications = Notification::where('receiver_id', $userId)->paginate($perPage);
         } else {
             $notifications = Notification::where('receiver_id', $userId)->get(); // Get all notifications for the user
         }
@@ -32,13 +32,13 @@ class NotificationController extends Controller
             return $this->sendError('No notifications found for this user.', null, 404);
         }
         return $this->sendResponse('Notifications retrieved successfully.', $notifications);
-    } 
+    }
 
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store($subject,$content, $user_id)
+    public function store($subject, $content, $user_id)
     {
         $request = new Request([
             'subject' => $subject,
@@ -56,7 +56,7 @@ class NotificationController extends Controller
         if ($validator->fails()) {
             return $this->sendError('Validation Error', $validator->errors(), 422);
         }
-    
+
         $notification = Notification::create($request->all());
 
 
@@ -102,8 +102,19 @@ class NotificationController extends Controller
         return $this->sendResponse('Notification deleted successfully.', null, 204);
     }
 
+    public function destroyAll(Request $request)
+    {
+        $userId = $request->user()->id;
 
-/*     public function showByUserId(Request $request,$userId)
+        // Delete all notifications belonging to this user
+        Notification::where('receiver_id', $userId)->delete();
+
+        return $this->sendResponse('All notifications deleted successfully.', null, 204);
+    }
+
+
+
+    /*     public function showByUserId(Request $request,$userId)
     {
         //$notifications = Notification::where('receiver_id', $userId)->get();
         $perPage = $request->input('per_page', 5); // Default to 5 notifications per page
@@ -114,5 +125,4 @@ class NotificationController extends Controller
         }
         return $this->sendResponse('Notifications retrieved successfully.', $notifications);
     } */
-
 }

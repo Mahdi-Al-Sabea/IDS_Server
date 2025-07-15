@@ -40,6 +40,7 @@ class MeetingController extends Controller
         Meeting::where('startsAt', '<', Carbon::now()->toDateTimeString())
             ->where('endsAt', '<', Carbon::now()->toDateTimeString())
             ->where('status', '!=', 'completed') // Optional, to avoid redundant writes
+            ->where('status', '!=', 'cancelled') // Optional, to avoid redundant writes
             ->update(['status' => 'completed']);
 
         $query = Meeting::with(['attendees', 'agendas', 'room']);
@@ -171,7 +172,7 @@ class MeetingController extends Controller
             'minutes.actionItems.assignee',
         ])->find($id);
 
-        if ($meeting->startsAt->lt(now()) && $meeting->endsAt->lt(now())) {
+        if ($meeting->startsAt->lt(now()) && $meeting->endsAt->lt(now()) && $meeting->status != "cancelled" && $meeting !="completed") {
             $meeting->status = "completed";
             $meeting->save();
         }
