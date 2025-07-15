@@ -18,6 +18,7 @@ use App\Mail\MeetingUpdateNotificationMail;
 use App\Models\MinutesOfMeeting;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Log;
 
 class MeetingController extends Controller
 {
@@ -327,7 +328,9 @@ class MeetingController extends Controller
         }
 
         // Notify attendees if rescheduled
-        if ($request->startsAt != $meeting->startsAt || $request->endsAt != $meeting->endsAt) {
+        if (Carbon::parse($request->startsAt) != Carbon::parse($meeting->startsAt) || Carbon::parse($request->endsAt) != Carbon::parse($meeting->endsAt)) {
+
+
             $request->merge(['status' => 'rescheduled']);
             foreach ($meeting->attendees as $attendee) {
                 Mail::to($attendee->email)->send(new MeetingUpdateNotificationMail($meeting, $attendee));

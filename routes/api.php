@@ -80,7 +80,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/Notifications/markAllRead', [NotificationController::class, 'destroyAll']);
 
 
-    Route::get("Minutes/generateReport", [MinutesOfMeetingController::class, "generateReport"]);
+    Route::get("Minutes/generateReport/{id}", [MinutesOfMeetingController::class, "generateReport"]);
     Route::get("Minutes", [MinutesOfMeetingController::class, "index"]);
     Route::post("Minutes", [MinutesOfMeetingController::class, "store"]);
     Route::get("Minutes/{id}", [MinutesOfMeetingController::class, "show"]);
