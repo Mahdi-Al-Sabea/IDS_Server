@@ -117,15 +117,30 @@ class MinutesOfMeetingController extends Controller
     }
 
 
+
     public function generateReport($id)
     {
+        $minutes = MinutesOfMeeting::with([
+            'meeting.room',
+            'meeting.organizer',
+            'meeting.attendees',
+            'meeting.agendas',
+            'attachments',
+            'actionItems'
+        ])->find($id);
 
+        if (!$minutes) {
+            return response()->json(['error' => 'Minutes not found'], 404);
+        }
 
-    $minutes = MinutesOfMeeting::with(['meeting', 'attachments', 'actionItems'])->find($id);
-
-        $pdf = Pdf::loadView('pdf.report', ['minutes' => $minutes]);
-    return response($pdf->output(), 200)
-        ->header('Content-Type', 'application/pdf')
-        ->header('Content-Disposition', 'inline; filename="report.pdf"');
+        try {
+            $pdf = Pdf::loadView('pdf.report', ['minutes' => $minutes]);
+            return response($pdf->output(), 200)
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'inline; filename="report.pdf"');
+        } catch (\Throwable $e) {
+            
+            return response()->json(['error' => 'Failed to generate PDF.'], 500);
+        }
     }
 }
