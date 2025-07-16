@@ -2,17 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\InvitationNotificationMail;
 use App\Models\Attachment;
+use App\Models\MinutesOfMeeting;
 use Illuminate\Http\Request;
 use App\Traits\ApiResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
 class AttachmentController extends Controller
 {
     use ApiResponse;
 
+      protected $notificationController;
 
+    public function __construct(NotificationController $notificationController)
+    {
+        $this->notificationController = $notificationController;
+    }
     public function index()
     {
         $attachments = Attachment::all();
@@ -76,6 +84,19 @@ class AttachmentController extends Controller
             ]);
 
             $uploadedAttachments[] = $attachment;
+        }
+
+        $minutes = MinutesOfMeeting::find($request->minutes_of_meeting_id);
+        $meeting = $minutes->meeting;
+
+        foreach ($meeting->attendees as $attendee) {
+            // Send notification to each attendee
+            Mail::to($attendee->email)->send(new InvitationNotificationMail($meeting, $attendee));
+            $this->notificationController->store(
+                'New Attachment',
+                'A new attachment has been added to the meeting: ' . $meeting->title,
+                $attendee->id
+            );
         }
 
         return $this->sendResponse('Attachments uploaded successfully.', $uploadedAttachments, 201);

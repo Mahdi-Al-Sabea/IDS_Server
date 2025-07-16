@@ -18,6 +18,7 @@ class Notification extends Model
         'receiver_id',
         'subject',
         'content',
+        'status',
     ];
 
     /**

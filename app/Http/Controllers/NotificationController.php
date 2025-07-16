@@ -43,7 +43,8 @@ class NotificationController extends Controller
         $request = new Request([
             'subject' => $subject,
             'content' => $content,
-            'receiver_id' => $user_id
+            'receiver_id' => $user_id,
+            'status' => 'unread', // Default status for new notifications
         ]);
 
         // Validate the request data
@@ -98,17 +99,16 @@ class NotificationController extends Controller
         if (!$notification) {
             return $this->sendError('Notification not found', null, 404);
         }
-        $notification->delete();
+        $notification->status = 'read'; // Mark as read instead of deleting
+        $notification->save();
         return $this->sendResponse('Notification deleted successfully.', null, 204);
     }
 
     public function destroyAll(Request $request)
     {
         $userId = $request->user()->id;
-
-        // Delete all notifications belonging to this user
-        Notification::where('receiver_id', $userId)->delete();
-
+        // Alternatively, you can mark them as read instead of deleting
+        Notification::where('receiver_id', $userId)->update(['status' => 'read']);
         return $this->sendResponse('All notifications deleted successfully.', null, 204);
     }
 

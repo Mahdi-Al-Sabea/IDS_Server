@@ -18,6 +18,7 @@ return new class extends Migration
             $table->foreign("receiver_id")->references("id")->on("users")->onDelete("cascade");
             $table->string("subject");
             $table->longText("content");
+            $table->enum("status", ["unread", "read"])->default("unread");
         });
     }
 
