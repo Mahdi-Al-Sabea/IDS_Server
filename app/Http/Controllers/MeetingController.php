@@ -14,6 +14,7 @@ use App\Mail\InvitationNotificationMail;
 use App\Mail\BookingConfirmationNotificationMail;
 use App\Models\Notification;
 use App\Http\Controllers\NotificationController;
+use App\Mail\MeetingStatusChangeMail;
 use App\Mail\MeetingUpdateNotificationMail;
 use App\Models\MinutesOfMeeting;
 use Carbon\Carbon;
@@ -212,7 +213,7 @@ class MeetingController extends Controller
         };
 
         foreach ($meeting->attendees as $attendee) {
-            Mail::to($attendee->email)->send(new MeetingUpdateNotificationMail($meeting, $attendee));
+            Mail::to($attendee->email)->send(new MeetingStatusChangeMail($meeting, $attendee , $request->status));
             $this->notificationController->store(
                 $notificationTitle,
                 "A meeting you had in room $roomName $statusMessage",
@@ -282,7 +283,7 @@ class MeetingController extends Controller
             $meeting->save();
 
             foreach ($meeting->attendees as $attendee) {
-                Mail::to($attendee->email)->send(new MeetingUpdateNotificationMail($meeting, $attendee));
+                Mail::to($attendee->email)->send(new MeetingStatusChangeMail($meeting, $attendee , "cancelled"));
                 $this->notificationController->store(
                     'Meeting Cancellation',
                     'A meeting you had in room ' . $meeting->room->roomname . ' has been cancelled.',
@@ -298,7 +299,7 @@ class MeetingController extends Controller
             $meeting->save();
 
             foreach ($meeting->attendees as $attendee) {
-                Mail::to($attendee->email)->send(new MeetingUpdateNotificationMail($meeting, $attendee));
+                Mail::to($attendee->email)->send(new MeetingStatusChangeMail($meeting, $attendee , "completed"));
                 $this->notificationController->store(
                     'Meeting Completion',
                     'A meeting you had in room ' . $meeting->room->roomname . ' has been completed.',

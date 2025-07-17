@@ -1,8 +1,17 @@
 <p>
 Hello {{ $attendee->name }},<br><br>
 
-You have been invited to a meeting.<br><br>
-
+You have been invited to a meeting in IDS Company . 
+<br>
+@if ($attendee->role == 'Guest')
+Credentials for your account : <br>
+Email: {{ $attendee->email }}<br>
+Password: {{ $attendee->password }}
+<br>
+<br>
+@else
+<br>
+@endif
 Title: {{ $meeting->title }}<br>
 Date: {{ $meeting->startsAt->format('Y-m-d') }}<br>
 Time: {{ $meeting->startsAt->format('H:i') }} - {{ $meeting->endsAt->format('H:i') }}<br>

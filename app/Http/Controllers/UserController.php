@@ -83,7 +83,7 @@ class UserController extends Controller
             $file->storeAs('ProfileImages', $newname, 'public');
             $data['profile_picture'] = 'storage/ProfileImages/' . $newname;
         } else {
-            $data['profile_picture'] = 'storage/ProfileImages/default.png';
+            $data['profile_picture'] = 'storage/ProfileImages/user_image.png';
         }
 
         $data['password'] = Hash::make($data['password']);

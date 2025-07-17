@@ -9,25 +9,28 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class InvitationNotificationMail extends Mailable
+class MeetingStatusChangeMail extends Mailable
 {
     use Queueable, SerializesModels;
 
     public $meeting;
     public $attendee;
+    public $status;
 
-    public function __construct($meeting, $attendee)
+    public function __construct($meeting, $attendee, $status)
     {
         $this->meeting = $meeting;
         $this->attendee = $attendee;
+        $this->status = $status;
     }
 
     public function build()
     {
-        return $this->subject('Meeting Invitation')
-            ->view('emails.meeting_invitation', [
+        return $this->subject('Meeting ' . $this->status)
+            ->view('emails.meeting_status_change', [
                 'meeting' => $this->meeting,
                 'attendee' => $this->attendee,
+                'status' => $this->status,
             ]);
     }
 }
