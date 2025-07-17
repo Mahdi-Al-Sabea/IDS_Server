@@ -33,8 +33,13 @@ class RoomController extends Controller
         if ($request->has('roomname')) {
             $query->where('roomname', 'like', '%' . $request->roomname . '%');
         }
-        $perPage = $request->input('per_page', 5); // Default to 5 rooms per page
-        $rooms = $query->paginate($perPage);
+
+
+
+
+
+        $perPage = $request->input('per_page', 5); 
+        $rooms = $query->paginate($perPage); 
         return $this->sendResponse('Room list retrieved successfully.', $rooms);
     }
 
