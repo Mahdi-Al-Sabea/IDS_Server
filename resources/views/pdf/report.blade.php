@@ -70,7 +70,7 @@
         <!-- Attendees -->
         <div>
             <div class="section-title">Attendees</div>
-            @foreach(['Admin', 'Employee', 'Guest'] as $role)
+            @foreach(['Employee', 'Guest'] as $role)
                 <div class="attendee-card">
                     <h4>{{ $role }}</h4>
                     <ul>
