@@ -6,7 +6,7 @@ You have been invited to a meeting in IDS Company .
 @if ($attendee->role == 'Guest')
 Credentials for your account : <br>
 Email: {{ $attendee->email }}<br>
-Password: {{ $attendee->password }}
+Password: 123456
 <br>
 <br>
 @else
