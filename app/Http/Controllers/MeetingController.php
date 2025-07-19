@@ -16,6 +16,7 @@ use App\Models\Notification;
 use App\Http\Controllers\NotificationController;
 use App\Mail\MeetingStatusChangeMail;
 use App\Mail\MeetingUpdateNotificationMail;
+use App\Mail\sendTaskAssignmentMail;
 use App\Models\MinutesOfMeeting;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Date;
@@ -69,14 +70,16 @@ class MeetingController extends Controller
 
     public function indexByDate($date, $roomid)
     {
-        Meeting::where('startsAt', '<', now())
-            ->where('endsAt', '<', now())
+        Meeting::where('startsAt', '<', Carbon::now()->toDateTimeString())
+            ->where('endsAt', '<', Carbon::now()->toDateTimeString())
+            ->where('status', '!=', 'completed') // Optional, to avoid redundant writes
+            ->where('status', '!=', 'cancelled') // Optional, to avoid redundant writes
             ->update(['status' => 'completed']);
 
         // Make sure the date is a valid format
         $parsedDate = \Carbon\Carbon::parse($date)->toDateString();
 
-        $meetings = Meeting::whereDate('startsAt', $parsedDate)->where('room_id', $roomid)->get();
+        $meetings = Meeting::whereDate('startsAt', $parsedDate)->where('room_id', $roomid)->where('status', '!=', 'cancelled')->where('status', '!=', 'completed')->get();
         return $this->sendResponse('Meetings retrieved successfully.', $meetings);
     }
 
@@ -106,7 +109,8 @@ class MeetingController extends Controller
         $conflict = Meeting::where('room_id', $request->room_id)
             ->where(function ($query) use ($request) {
                 $query->where('startsAt', '<', $request->endsAt)
-                    ->where('endsAt', '>', $request->startsAt);
+                    ->where('endsAt', '>', $request->startsAt)
+                    ->where('status', '!=', 'cancelled');
             })
             ->exists();
 
@@ -174,7 +178,7 @@ class MeetingController extends Controller
             'minutes.actionItems.assignee',
         ])->find($id);
 
-        if ($meeting->startsAt->lt(now()) && $meeting->endsAt->lt(now()) && $meeting->status != "cancelled" && $meeting !="completed") {
+        if ($meeting->startsAt->lt(now()) && $meeting->endsAt->lt(now()) && $meeting->status != "cancelled" && $meeting != "completed") {
             $meeting->status = "completed";
             $meeting->save();
         }
@@ -213,7 +217,7 @@ class MeetingController extends Controller
         };
 
         foreach ($meeting->attendees as $attendee) {
-            Mail::to($attendee->email)->send(new MeetingStatusChangeMail($meeting, $attendee , $request->status));
+            Mail::to($attendee->email)->send(new MeetingStatusChangeMail($meeting, $attendee, $request->status));
             $this->notificationController->store(
                 $notificationTitle,
                 "A meeting you had in room $roomName $statusMessage",
@@ -232,58 +236,14 @@ class MeetingController extends Controller
             return $this->sendError('Meeting not found.', [], 404);
         }
 
-        /*$validator = Validator::make($request->all(), [
-            'room_id' => 'sometimes|exists:rooms,id',
-            'title' => 'sometimes|string|max:255',
-            'description' => 'nullable|string',
-            'startsAt' => 'sometimes|date',
-            'endsAt' => 'sometimes|date|after_or_equal:startsAt',
-            'status' => 'sometimes|in:cancelled,completed',
-            'attendees' => 'sometimes|array',
-            'attendees' => 'sometimes|array',
-            'attendees.*.Attended' => 'nullable|boolean',
-            'agendas' => 'sometimes|array|min:1',
-            'agendas.*.description' => 'sometimes|string|max:10000',
 
-            // Minutes validation
-            'minutes' => 'sometimes|array',
-            'minutes.id' => 'sometimes|exists:minutes_of_meetings,id',
-            'minutes.discussedPoints' => 'nullable|string',
-            'minutes.decisions' => 'nullable|string',
-
-            // Action items validation
-            'minutes.action_items' => 'sometimes|array',
-            'minutes.action_items.*.id' => 'sometimes|exists:action_items,id',
-            'minutes.action_items.*.description' => 'nullable|string',
-            'minutes.action_items.*.status' => 'nullable|string',
-            'minutes.action_items.*.assignee_id' => 'nullable|exists:users,id',
-
-            // Attachments validation
-            'minutes.attachments' => 'sometimes|array',
-            'minutes.attachments.*.id' => 'sometimes|exists:attachments,id',
-            'minutes.attachments.*.fileName' => 'nullable|string',
-            'minutes.attachments.*.filePath' => 'nullable|string',
-            'minutes.attachments.*.uploader_id' => 'nullable|exists:users,id',
-        ]);
-
-        if ($validator->fails()) {
-            return $this->sendError('Validation Error', $validator->errors());
-        }*/
-
-        $organizerId = Auth::id();
-        // Uncomment if you want to restrict updates to organizer only
-        /*
-        if ($organizerId !== $meeting->organizer_id) {
-            return $this->sendError('Unauthorized', ['message' => 'You must be the organizer to update this meeting.'], 401);
-        }
-        */
 
         if ($request->has('status') && $request->status === 'cancelled') {
             $meeting->status = 'cancelled';
             $meeting->save();
 
             foreach ($meeting->attendees as $attendee) {
-                Mail::to($attendee->email)->send(new MeetingStatusChangeMail($meeting, $attendee , "cancelled"));
+                Mail::to($attendee->email)->send(new MeetingStatusChangeMail($meeting, $attendee, "cancelled"));
                 $this->notificationController->store(
                     'Meeting Cancellation',
                     'A meeting you had in room ' . $meeting->room->roomname . ' has been cancelled.',
@@ -299,7 +259,7 @@ class MeetingController extends Controller
             $meeting->save();
 
             foreach ($meeting->attendees as $attendee) {
-                Mail::to($attendee->email)->send(new MeetingStatusChangeMail($meeting, $attendee , "completed"));
+                Mail::to($attendee->email)->send(new MeetingStatusChangeMail($meeting, $attendee, "completed"));
                 $this->notificationController->store(
                     'Meeting Completion',
                     'A meeting you had in room ' . $meeting->room->roomname . ' has been completed.',
@@ -319,7 +279,8 @@ class MeetingController extends Controller
                 ->where(function ($query) use ($request, $id) {
                     $query->where('startsAt', '<', $request->endsAt)
                         ->where('endsAt', '>', $request->startsAt)
-                        ->where('id', '!=', $id);
+                        ->where('id', '!=', $id)
+                        ->where('status', '!=', 'cancelled');
                 })
                 ->exists();
 
@@ -369,22 +330,51 @@ class MeetingController extends Controller
                 ]
             );
 
-            // Action items update
-            if (isset($minutesData['action_items'])) {
-                $existingActionItemIds = collect($minutesData['action_items'])->pluck('id')->filter()->toArray();
-                $minutes->actionItems()->whereNotIn('id', $existingActionItemIds)->delete();
+            if (isset($minutesData['action_items']) && count($minutesData['action_items']) > 0) {
+                $existingIds = collect($minutesData['action_items'])
+                    ->pluck('id')
+                    ->filter()
+                    ->toArray();
 
-                foreach ($minutesData['action_items'] as $itemData) {
-                    $minutes->actionItems()->updateOrCreate(
-                        ['id' => $itemData['id'] ?? null],
-                        [
-                            'description' => $itemData['description'],
-                            'status' => $itemData['status'],
-                            'assignee_id' => $itemData['assignee_id'],
-                        ]
-                    );
+                $minutes->actionItems()->whereNotIn('id', $existingIds)->delete();
+
+                foreach ($minutesData['action_items'] as $item) {
+                    if (!empty($item['id'])) {
+                        // Existing item - fetch it from DB
+                        $existingItem = $minutes->actionItems()->find($item['id']);
+
+                        // Detect if assignedTo is changed
+                        $assignedChanged = $existingItem && $existingItem->assignedTo != $item['assignedTo'];
+
+                        $updatedItem = $minutes->actionItems()->updateOrCreate(
+                            ['id' => $item['id']],
+                            [
+                                'description' => $item['description'],
+                                'status' => $item['status'],
+                                'assignedTo' => $item['assignedTo'],
+                                'due_date' => $item['dueDate'] ?? null,
+                            ]
+                        );
+
+                        // Send notification if reassigned
+                        if ($assignedChanged) {
+                            $this->sendTaskAssignmentNotification($meeting, $updatedItem);
+                        }
+                    } else {
+                        // New action item
+                        $newItem = $minutes->actionItems()->create([
+                            'description' => $item['description'],
+                            'status' => $item['status'],
+                            'assignedTo' => $item['assignedTo'],
+                            'dueDate' => $item['dueDate'] ?? null,
+                        ]);
+
+                        $this->sendTaskAssignmentNotification($meeting, $newItem);
+                    }
                 }
             }
+
+
 
             // Attachments update
             if (isset($minutesData['attachments'])) {
@@ -429,5 +419,21 @@ class MeetingController extends Controller
         $meeting->delete();
 
         return $this->sendResponse('Meeting deleted successfully.', null, 204);
+    }
+
+    protected function sendTaskAssignmentNotification($meeting, $actionItem)
+    {
+        $assignee = User::find($actionItem->assignedTo);
+        if (!$assignee) return;
+
+        // Send email
+        Mail::to($assignee->email)->send(new sendTaskAssignmentMail($meeting, $actionItem, $assignee));
+
+        // Send in-app notification
+        $this->notificationController->store(
+            'New Task Assigned',
+            "You have been assigned a new task in meeting '{$meeting->title}' scheduled in room '{$meeting->room->roomname}'.",
+            $assignee->id
+        );
     }
 }
