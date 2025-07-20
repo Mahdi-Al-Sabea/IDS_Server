@@ -16,15 +16,28 @@ use App\Http\Controllers\NotificationController;
 
 
 
-/* Route::middleware(['auth:sanctum','checkadmin'])->group(function () {});
 
 
-Route::middleware(['auth:sanctum','checkemployee'])->group(function () {}); */
 
+Route::middleware(['auth:sanctum', 'checkrole:Admin'])->group(function () {
+    Route::post("Feature", [FeatureController::class, "store"]);
+    Route::put("Feature/{id}", [FeatureController::class, "update"]);
+    Route::delete("Feature/{id}", [FeatureController::class, "destroy"]);
 
-Route::middleware(['auth:sanctum', 'checkrole:Admin'])->group(function () {});
+    Route::post("Room", [RoomController::class, "store"]);
+    Route::put("Room/{id}", [RoomController::class, "update"]);
+    Route::delete("Room/{id}", [RoomController::class, "destroy"]);
 
-Route::middleware(['auth:sanctum', 'checkrole:Employee'])->group(function () {});
+    Route::delete("User/{id}", [UserController::class, "destroy"]);
+
+});
+
+Route::middleware(['auth:sanctum', 'checkrole:Employee'])->group(function () {
+    Route::post("Meeting", [MeetingController::class, "store"]);
+    Route::put("Meeting/{id}", [MeetingController::class, "update"]);
+    Route::delete("Meeting/{id}", [MeetingController::class, "destroy"]);
+    Route::put('/Meeting/{id}/status', [MeetingController::class, 'updateStatus']);
+});
 
 Route::middleware(['auth:sanctum', 'checkrole:Guest'])->group(function () {});
 
@@ -36,27 +49,22 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get("Room", [RoomController::class, "index"]);
     Route::get("RoomNotPaginated", [RoomController::class, "indexNotPaginated"]);
     Route::get("Room/{id}", [RoomController::class, "show"]);
-    Route::post("Room", [RoomController::class, "store"]);
-    Route::put("Room/{id}", [RoomController::class, "update"]);
-    Route::delete("Room/{id}", [RoomController::class, "destroy"]);
 
 
-    Route::post("Feature", [FeatureController::class, "store"]);
+
+    
     Route::get("Feature", [FeatureController::class, "index"]);
     Route::get("FeatureNotPaginated", [FeatureController::class, "indexNotPaginated"]);
     Route::get("Feature/{id}", [FeatureController::class, "show"]);
-    Route::put("Feature/{id}", [FeatureController::class, "update"]);
-    Route::delete("Feature/{id}", [FeatureController::class, "destroy"]);
 
 
 
-    Route::post("Meeting", [MeetingController::class, "store"]);
+
+    
     Route::get("Meeting", [MeetingController::class, "index"]);
     Route::get("Meeting/{id}", [MeetingController::class, "show"]);
     Route::get("MeetingByDate/{date}/{roomid}", [MeetingController::class, "indexByDate"]);
-    Route::put("Meeting/{id}", [MeetingController::class, "update"]);
-    Route::delete("Meeting/{id}", [MeetingController::class, "destroy"]);
-    Route::put('/Meeting/{id}/status', [MeetingController::class, 'updateStatus']);
+
 
     Route::get("User/Profile", [UserController::class, "getUserProfile"]);
     Route::post("User", [UserController::class, "store"]);
@@ -64,8 +72,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get("UserNotPaginated", [UserController::class, "indexNotPaginated"]);
     Route::get('/User/{id}/meetings', [UserController::class, 'getMyMeetings']);
     Route::get("User/{id}", [UserController::class, "show"]);
-    Route::put("User/{id}", [UserController::class, "update"]);
-    Route::delete("User/{id}", [UserController::class, "destroy"]);
+    Route::put("User/{id}", [UserController::class, "update"]);// can only update own profile unless admin
+    
 
 
     Route::get("Room", [RoomController::class, "index"]);
